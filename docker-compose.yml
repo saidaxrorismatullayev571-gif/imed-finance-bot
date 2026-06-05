@@ -1,0 +1,24 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: imed
+      POSTGRES_PASSWORD: change_me
+      POSTGRES_DB: imed_finance
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Migratsiyalar birinchi ishga tushganda alifbo tartibida bajariladi
+      - ./app/db/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  bot:
+    build: .
+    env_file: .env
+    depends_on:
+      - db
+    restart: unless-stopped
+
+volumes:
+  pgdata:
