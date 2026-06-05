@@ -88,3 +88,33 @@ python -m app.bot
 - [ ] `/start` → raqam yuborish → foydalanuvchi `users` jadvaliga yoziladi
 - [ ] Birinchi foydalanuvchi `admin` rolini oladi
 - [ ] `SELECT * FROM v_wallet_balances;` 3 ta kassani 0 balans bilan ko'rsatadi
+
+## Faza 1 — daromad / xarajat / kassa / boshlang'ich balans
+
+Ro'yxatdan o'tgan foydalanuvchi `/start` (yoki `/menu`) yuborganda **asosiy menyu**
+chiqadi. Barcha yozuvlar yagona `transactions` jurnaliga tushadi, balanslar esa
+view'lardan **hisoblab** ko'rsatiladi.
+
+| Menyu tugmasi | Oqim (aiogram FSM) | Natija |
+|---|---|---|
+| ➕ Kirim qo'shish | summa → daromad manbasi → kassa → fond → tasdiq | `kind='income'` |
+| ➖ Chiqim qo'shish | summa → xarajat kategoriyasi → kassa → fond → tasdiq | `kind='expense'` |
+| 🏦 Boshlang'ich balans | summa → kassa → fond → tasdiq | `kind='opening'` |
+| 📊 Balanslar | — | `v_wallet_balances` + `v_fund_balances` |
+
+- Har bir yozuvda `app.actor_id` o'rnatiladi (`db.acquire(actor_id=...)`), shu sababli
+  audit triggerlari kim yozganini biladi; `created_by` ham shu foydalanuvchiga tegishli.
+- Fond ixtiyoriy — oqimda "➖ Fondsiz" tugmasi `fund_id = NULL` qiladi.
+- Istalgan bosqichda `/cancel` oqimni bekor qiladi.
+
+**Handlerlar:** `app/handlers/income.py`, `expense.py`, `balances.py`
+(boshlang'ich balans shu yerda). Umumiy klaviaturalar `app/keyboards.py` da,
+yordamchilar (summa parser, formatlash, foydalanuvchi) `app/handlers/common.py` da.
+
+### Faza 1 — qabul mezoni (acceptance)
+
+- [ ] Ro'yxatdan o'tgan foydalanuvchiga asosiy menyu ko'rinadi
+- [ ] Kirim/chiqim/boshlang'ich balans oqimlari to'liq ishlaydi va tasdiqlanadi
+- [ ] Yozuvlar `transactions` ga to'g'ri `kind` bilan tushadi
+- [ ] 📊 Balanslar kassa va fond qoldiqlarini hisoblab ko'rsatadi
+- [ ] `audit_logs` da har yozuv uchun `actor_id` to'ldirilgan

@@ -1,5 +1,6 @@
 from aiogram import Router, F
-from aiogram.filters import CommandStart
+from aiogram.filters import Command, CommandStart
+from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     Message,
     KeyboardButton,
@@ -8,6 +9,7 @@ from aiogram.types import (
 )
 from app.db import acquire
 from app.config import config
+from app.keyboards import main_menu_kb
 
 router = Router()
 
@@ -32,7 +34,8 @@ async def cmd_start(message: Message) -> None:
         await message.answer(
             f"Salom, {message.from_user.full_name}! 👋\n"
             f"Rolingiz: {ROLE_LABEL.get(user['role'], user['role'])}.\n\n"
-            "Asosiy menyu keyingi fazada qo'shiladi."
+            "Quyidagi menyudan foydalaning:",
+            reply_markup=main_menu_kb(),
         )
         return
 
@@ -41,6 +44,19 @@ async def cmd_start(message: Message) -> None:
         "Ro'yxatdan o'tish uchun telefon raqamingizni yuboring.",
         reply_markup=contact_kb(),
     )
+
+
+@router.message(Command("cancel"))
+async def cmd_cancel(message: Message, state: FSMContext) -> None:
+    """Istalgan bosqichli oqimni bekor qiladi va asosiy menyuga qaytaradi."""
+    await state.clear()
+    await message.answer("❌ Bekor qilindi.", reply_markup=main_menu_kb())
+
+
+@router.message(Command("menu"))
+async def cmd_menu(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    await message.answer("Asosiy menyu:", reply_markup=main_menu_kb())
 
 
 @router.message(F.contact)
@@ -70,3 +86,4 @@ async def got_contact(message: Message) -> None:
         f"Ro'yxatdan o'tdingiz ✅\nRolingiz: {ROLE_LABEL.get(role, role)}.",
         reply_markup=ReplyKeyboardRemove(),
     )
+    await message.answer("Quyidagi menyudan foydalaning:", reply_markup=main_menu_kb())

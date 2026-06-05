@@ -2,11 +2,13 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
 from app.config import config
 from app.db import init_pool, close_pool
-from app.handlers import start
+from app.handlers import balances, expense, income, start
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,11 +24,17 @@ async def main() -> None:
     await init_pool()
     log.info("Database pool ready")
 
-    bot = Bot(token=config.bot_token)
+    bot = Bot(
+        token=config.bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+    )
     dp = Dispatcher(storage=MemoryStorage())
 
     dp.include_router(start.router)
-    # Faza 1+ da: income, expense, transfer, debt, reports routerlari qo'shiladi
+    dp.include_router(income.router)
+    dp.include_router(expense.router)
+    dp.include_router(balances.router)
+    # Faza 2+ da: transfer, debt, reports routerlari qo'shiladi
 
     log.info("Bot ishga tushdi (polling)")
     try:
