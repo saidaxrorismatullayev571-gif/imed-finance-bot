@@ -9,6 +9,8 @@ from aiogram.types import (
 # --- Asosiy menyu tugmalari (matni handlerlarda filtr sifatida ishlatiladi) ---
 BTN_INCOME = "➕ Kirim qo'shish"
 BTN_EXPENSE = "➖ Chiqim qo'shish"
+BTN_DEBT = "💳 Qarz"
+BTN_TRANSFER = "🔄 Transfer"
 BTN_BALANCES = "📊 Balanslar"
 BTN_OPENING = "🏦 Boshlang'ich balans"
 
@@ -18,6 +20,7 @@ def main_menu_kb() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=BTN_INCOME), KeyboardButton(text=BTN_EXPENSE)],
+            [KeyboardButton(text=BTN_DEBT), KeyboardButton(text=BTN_TRANSFER)],
             [KeyboardButton(text=BTN_BALANCES), KeyboardButton(text=BTN_OPENING)],
         ],
         resize_keyboard=True,

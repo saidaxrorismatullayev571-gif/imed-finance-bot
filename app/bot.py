@@ -8,7 +8,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from app.config import config
 from app.db import init_pool, close_pool
-from app.handlers import balances, expense, income, start
+from app.handlers import balances, debt, expense, income, start, transfer
+from app.services.scheduler import setup_scheduler
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,13 +34,18 @@ async def main() -> None:
     dp.include_router(start.router)
     dp.include_router(income.router)
     dp.include_router(expense.router)
+    dp.include_router(debt.router)
+    dp.include_router(transfer.router)
     dp.include_router(balances.router)
-    # Faza 2+ da: transfer, debt, reports routerlari qo'shiladi
+    # Faza 3+ da: reports routeri qo'shiladi
+
+    scheduler = setup_scheduler(bot)
 
     log.info("Bot ishga tushdi (polling)")
     try:
         await dp.start_polling(bot)
     finally:
+        scheduler.shutdown(wait=False)
         await close_pool()
         log.info("To'xtatildi, ulanishlar yopildi")
 

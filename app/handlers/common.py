@@ -1,4 +1,5 @@
 """Handlerlar uchun umumiy yordamchilar: foydalanuvchi, summa parser, formatlash."""
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 
 import asyncpg
@@ -41,3 +42,24 @@ def fmt_money(amount, currency: str = "UZS") -> str:
     whole = whole.lstrip("-")
     grouped = f"{int(whole):,}".replace(",", " ")
     return f"{sign}{grouped}.{frac} {currency}"
+
+
+_DATE_FORMATS = ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y", "%d-%m-%Y")
+
+
+def parse_date(text: str) -> date | None:
+    """Sanani ajratadi: "2026-06-30", "30.06.2026", "30/06/2026". Xato bo'lsa None."""
+    raw = (text or "").strip()
+    for fmt in _DATE_FORMATS:
+        try:
+            return datetime.strptime(raw, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
+def fmt_date(value) -> str:
+    """date/None ni ko'rsatadi: 2026-06-30 -> "30.06.2026", None -> "—"."""
+    if value is None:
+        return "—"
+    return value.strftime("%d.%m.%Y")

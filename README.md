@@ -118,3 +118,31 @@ yordamchilar (summa parser, formatlash, foydalanuvchi) `app/handlers/common.py` 
 - [ ] Yozuvlar `transactions` ga to'g'ri `kind` bilan tushadi
 - [ ] 📊 Balanslar kassa va fond qoldiqlarini hisoblab ko'rsatadi
 - [ ] `audit_logs` da har yozuv uchun `actor_id` to'ldirilgan
+
+## Faza 2 — qarz + transfer + multi-valyuta
+
+| Menyu | Imkoniyat |
+|---|---|
+| 💳 Qarz | berdim (`lent`)/oldim (`borrowed`), qaytarish (qisman/to'liq), muddat uzaytirish, faol qarzlar hisoboti |
+| 🔄 Transfer | kassa→kassa, fond→fond, kassa+fond; `transfer_out`+`transfer_in` juftligi `transfer_group_id` bilan |
+
+- **Qarz:** `debts` + `transactions` (`debt_out`/`debt_in`/`debt_repay_out`), to'lovlar
+  `debt_payments` ga, qoldiq `v_debt_outstanding` dan. Holat avtomatik:
+  `open`/`partial`/`paid`/`overdue`. Muddat bo'lsa `debt_reminders` ga eslatma yoziladi.
+- **Multi-valyuta:** har tranzaksiyada `fx_rate` va `amount_uzs`. USD kursi CBU dan
+  (`app/services/fx.py`) olinadi va `exchange_rates` ga saqlanadi. UZS↔USD transferda
+  UZS qiymati saqlanib qoladi.
+- **APScheduler** (`app/services/scheduler.py`): har kuni 09:00 da CBU kursini yangilaydi,
+  09:05 da muddati o'tgan qarzlarni `overdue` qiladi va eslatmalarni yuboradi.
+- **Audit tuzatildi:** `db.acquire` endi `app.actor_id` ni sessiya darajasida o'rnatadi,
+  shu sababli ko'p oyoqli (transfer/qarz) yozuvlarda ham `actor_id` to'g'ri saqlanadi.
+
+> ⚠️ Seed (`003_seed.sql`) faqat **bo'sh bazada** birinchi ishga tushishda bajariladi.
+> Mavjud bazada yangilash kerak bo'lsa, `pgdata` hajmini tozalang yoki qo'lda `psql` bilan.
+
+### Faza 2 — qabul mezoni (acceptance)
+
+- [ ] Qarz berish/olish, qisman va to'liq qaytarish ishlaydi; qoldiq to'g'ri
+- [ ] Qarz holati to'lov/muddatga qarab avtomatik o'zgaradi
+- [ ] Transfer ikki oyoqli yoziladi, balanslar saqlanadi (UZS↔USD kurs bilan)
+- [ ] CBU kursi `exchange_rates` ga tushadi; eslatmalar belgilangan vaqtda yuboriladi

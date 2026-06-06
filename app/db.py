@@ -28,8 +28,16 @@ def pool() -> asyncpg.Pool:
 
 @asynccontextmanager
 async def acquire(actor_id: int | None = None):
-    """Connection helper that sets app.actor_id so audit triggers know WHO acted."""
+    """Connection helper that sets app.actor_id so audit triggers know WHO acted.
+
+    Eslatma: asyncpg autocommit rejimida ishlaydi — har bir `execute` alohida
+    tranzaksiya. Shuning uchun `app.actor_id` ni SESSIYA darajasida (is_local=false)
+    o'rnatamiz; aks holda keyingi (ko'p oyoqli) INSERT'lar uchun actor yo'qoladi.
+    Yozuvsiz (actor_id=None) ulanishlarda eski qiymat qolib ketmasligi uchun tozalaymiz.
+    """
     async with pool().acquire() as conn:
-        if actor_id is not None:
-            await conn.execute("SELECT set_config('app.actor_id', $1, true)", str(actor_id))
+        await conn.execute(
+            "SELECT set_config('app.actor_id', $1, false)",
+            str(actor_id) if actor_id is not None else "",
+        )
         yield conn

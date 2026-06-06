@@ -79,8 +79,6 @@ async def got_contact(message: Message) -> None:
             message.contact.phone_number,
             role,
         )
-        # audit log uchun actor o'rnatib qayta yozish (ixtiyoriy, namuna)
-        await conn.execute("SELECT set_config('app.actor_id', $1, true)", str(new_id))
 
     await message.answer(
         f"Ro'yxatdan o'tdingiz ✅\nRolingiz: {ROLE_LABEL.get(role, role)}.",
