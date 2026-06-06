@@ -1,0 +1,8 @@
+# Linux serverda (DigitalOcean) ishlaydigan fayllar doim LF bo'lsin —
+# CRLF shell skript va Docker'ni buzadi.
+*.sh   text eol=lf
+*.py   text eol=lf
+*.sql  text eol=lf
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+*.html text eol=lf

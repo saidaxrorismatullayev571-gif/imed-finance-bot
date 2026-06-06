@@ -8,7 +8,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from app.config import config
 from app.db import init_pool, close_pool
-from app.handlers import balances, debt, expense, income, reports, start, transfer
+from app.handlers import admin, balances, debt, expense, income, reports, start, transfer
+from app.middlewares import AuthMiddleware
 from app.services.scheduler import setup_scheduler
 
 logging.basicConfig(
@@ -31,7 +32,14 @@ async def main() -> None:
     )
     dp = Dispatcher(storage=MemoryStorage())
 
+    # Auth: har bir update uchun foydalanuvchini yuklaydi va yozish huquqini tekshiradi
+    # (outer_middleware — routing'dan oldin ishlaydi, barcha routerlarga ko'rinadi)
+    auth = AuthMiddleware()
+    dp.message.outer_middleware(auth)
+    dp.callback_query.outer_middleware(auth)
+
     dp.include_router(start.router)
+    dp.include_router(admin.router)
     dp.include_router(income.router)
     dp.include_router(expense.router)
     dp.include_router(debt.router)

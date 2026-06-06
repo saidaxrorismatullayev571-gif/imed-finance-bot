@@ -31,18 +31,25 @@ app/
 ├── config.py           # .env (frozen dataclass `config`)
 ├── db.py               # asyncpg pool + acquire(actor_id) audit helper
 ├── keyboards.py        # main_menu_kb, choices_kb, confirm_kb
+├── middlewares.py      # AuthMiddleware — rol/ruxsat tekshiruvi
 ├── handlers/
-│   ├── common.py       # get_current_user, parse_amount, fmt_money
+│   ├── common.py       # get_current_user, parse_amount/date, fmt_money/date, mask_phone
 │   ├── start.py        # /start, onboarding, /cancel, /menu
 │   ├── income.py       # kirim FSM      → kind='income'
 │   ├── expense.py      # chiqim FSM     → kind='expense'
 │   ├── balances.py     # balanslar + boshlang'ich balans (kind='opening')
-│   ├── debt.py         # [Faza 2] qarz
-│   ├── transfer.py     # [Faza 2] transfer
-│   └── reports.py      # [Faza 3] hisobotlar
+│   ├── debt.py         # qarz (berish/olish/qaytarish/muddat/hisobot)
+│   ├── transfer.py     # transfer (transfer_out/in juftligi)
+│   ├── reports.py      # hisobotlar + Excel/PDF + Dashboard tugmasi
+│   └── admin.py        # /admin — rollar + audit log (admin)
 ├── services/
-│   └── fx.py           # [Faza 2] CBU kursi
+│   ├── fx.py           # CBU valyuta kursi
+│   ├── scheduler.py    # APScheduler (kurs + qarz eslatma/overdue)
+│   └── export.py       # Excel (openpyxl) + PDF (weasyprint)
 └── db/migrations/      # 001 sxema, 002 audit trigger, 003 seed
+webapp/                 # Telegram Web App dashboard (FastAPI + Chart.js)
+scripts/backup.sh       # kunlik pg_dump backup
+tests/                  # pytest (sof yordamchilar)
 ```
 
 ## 3. Muhim konvensiyalar (BUZMANG)
@@ -88,7 +95,7 @@ Asosiy menyu; income/expense/opening FSM oqimlari; balanslar `v_wallet_balances`
 `v_fund_balances` dan. (seed shaxsiy moliyaga moslangan: Jamg'arma/Kundalik/Zaxira/
 Investitsiya fondlari; Oziq-ovqat/Transport/Uy-joy/... kategoriyalari.)
 
-## ⏳ Faza 2 — qarz + transfer + multi-valyuta
+## ✅ Faza 2 — qarz + transfer + multi-valyuta
 **Qarz (`handlers/debt.py`):**
 - Yo'nalish: `lent` (qarz berdim) / `borrowed` (qarz oldim).
 - Kiritish FSM: summa → kontragent ism → telefon → kassa → fond → muddat(due_date) →
@@ -116,13 +123,13 @@ Investitsiya fondlari; Oziq-ovqat/Transport/Uy-joy/... kategoriyalari.)
 **Biznes qoidalari (TZ 6):** fond balansi manfiyga ketsa **ogohlantirish** (bloklamaydi,
 shaxsiy moliya); qarz holati avtomatik; kurs tarixi saqlanadi.
 
-## ⏳ Faza 3 — hisobotlar + dashboard
+## ✅ Faza 3 — hisobotlar + dashboard
 **Hisobot (`handlers/reports.py`):** P&L (oylik daromad/xarajat), kassa/fond qoldiqlari,
 qarz hisoboti, transfer tarixi. PDF (weasyprint), Excel (openpyxl) eksport.
 **Dashboard (`webapp/`):** Telegram Web App; kunlik/oylik grafik, fond pie, kassa
 qoldiqlari, qarz portfeli. FastAPI (static + JSON API) + Chart.js, DigitalOcean.
 
-## ⏳ Faza 4 — xavfsizlik + test
+## ✅ Faza 4 — xavfsizlik + test
 Rollar (admin/manager/viewer) ruxsatlari; telefon maskirovka; audit log ko'rish (admin);
 test holatlari (TZ 11) + README qabul mezonlari; backup (`pg_dump` cron); ekspert
 tavsiyalari (TZ 12): inline tugmalar, calendar eslatma, smart kategoriya tavsiyasi.

@@ -170,3 +170,53 @@ yordamchilar (summa parser, formatlash, foydalanuvchi) `app/handlers/common.py` 
 - [ ] Matnli hisobotlar (P&L, balanslar, qarz, transfer) to'g'ri ko'rsatiladi
 - [ ] Excel va PDF eksport fayllari yuboriladi
 - [ ] `webapp` xizmati `/api/summary` qaytaradi va dashboard grafiklarni chizadi
+
+## Faza 4 — xavfsizlik + test + backup
+
+**Rollar va ruxsatlar** (`app/middlewares.py`):
+
+| Rol | Ruxsat |
+|---|---|
+| 👁 viewer | faqat ko'rish (balans, hisobot) |
+| ✍️ manager | barcha moliyaviy amallar + ko'rish |
+| 👑 admin | hammasi + `/admin` (foydalanuvchilar, audit log) |
+
+- `AuthMiddleware` har update'da foydalanuvchini yuklaydi; viewer yozish tugmalarini
+  bossa rad etiladi.
+- **Admin panel** (`/admin`, `app/handlers/admin.py`): foydalanuvchilar ro'yxati
+  (telefon **maskalangan**: `+998*****4567`), rol o'zgartirish (oxirgi adminni
+  himoyalaydi), audit log (so'nggi 20 yozuv: kim, qachon, nima).
+- **Telefon maskirovka:** `common.mask_phone` admin ko'rinishida qo'llanadi.
+
+**Backup** (`scripts/backup.sh`, compose `backup` xizmati): kunlik `pg_dump`,
+gzip, so'nggi 14 nusxa `./backups` da saqlanadi.
+
+**Ekspert tavsiyalari (TZ 12):**
+- Inline tugmalar — butun bot bo'ylab.
+- «Calendar» eslatma — qarz muddati uchun tezkor sana tugmalari (+7/+14/+30 kun,
+  oy oxiri, muddatsiz).
+- Smart kategoriya/manba tavsiyasi — kirim/chiqimda ko'p ishlatilganlari tepada.
+
+**Testlar:** sof yordamchilar uchun `pytest` (`tests/test_helpers.py`).
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+### Faza 4 — test holatlari (TZ 11, qo'lda tekshirish)
+
+1. **Rol:** viewer foydalanuvchi «➕ Kirim» bossa — «yozish huquqi yo'q» chiqadi.
+2. **Admin:** admin `/admin` → foydalanuvchining rolini manager qiladi → endi u kirim qo'sha oladi.
+3. **Oxirgi admin:** yagona adminni manager qilishga urinish — rad etiladi.
+4. **Audit:** kirim qo'shilgach, `/admin → Audit log` da `INSERT transactions` ko'rinadi, actor to'g'ri.
+5. **Backup:** `backup` xizmati ishlagach `./backups/imed_*.sql.gz` paydo bo'ladi.
+6. **Smart tavsiya:** bir necha «Oziq-ovqat» chiqimdan keyin u ro'yxat tepasiga chiqadi.
+7. **Qarz muddati:** «+30 kun» tugmasi muddatni 30 kundan keyin belgilaydi.
+
+### Faza 4 — qabul mezoni (acceptance)
+
+- [ ] viewer yoza olmaydi; manager/admin yoza oladi
+- [ ] admin rollarni boshqaradi va audit logni ko'radi; telefon maskalangan
+- [ ] oxirgi admin himoyalangan
+- [ ] kunlik backup fayllari yaratiladi
+- [ ] `pytest` yashil (sof yordamchilar test qoplamasi)

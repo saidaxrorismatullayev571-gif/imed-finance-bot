@@ -47,8 +47,11 @@ async def income_amount(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(amount=str(amount))
     async with acquire() as conn:
+        # Smart tavsiya: ko'p ishlatilgan manbalar tepada
         sources = await conn.fetch(
-            "SELECT id, name FROM income_sources WHERE is_active ORDER BY name"
+            """SELECT s.id, s.name FROM income_sources s WHERE s.is_active
+               ORDER BY (SELECT count(*) FROM transactions t
+                         WHERE t.source_id = s.id AND t.kind = 'income') DESC, s.name"""
         )
     if not sources:
         await state.clear()

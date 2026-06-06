@@ -31,5 +31,17 @@ services:
       - "8080:8080"
     restart: unless-stopped
 
+  # Kunlik backup (pg_dump). Nusxalar ./backups ga gzip qilib saqlanadi.
+  backup:
+    image: postgres:16-alpine
+    env_file: .env
+    depends_on:
+      - db
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    entrypoint: ["sh", "/backup.sh"]
+    restart: unless-stopped
+
 volumes:
   pgdata:

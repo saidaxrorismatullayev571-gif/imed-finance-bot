@@ -8,7 +8,7 @@ Model:
   • borrowed ni qaytardim→ kassadan chiqdi→ 'debt_repay_out'
   Qoldiq: v_debt_outstanding;  holat: open/partial/paid/overdue (avtomatik).
 """
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from aiogram import F, Router
@@ -170,7 +170,48 @@ async def newdebt_fund(call: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(fund_id=fund["id"], fund_name=fund["name"])
     await state.set_state(NewDebtFSM.due)
     await call.message.edit_text(
-        "Qaytarish muddatini kiriting (masalan 30.06.2026) yoki «yo'q»:"
+        "Qaytarish muddatini tanlang yoki kiriting (masalan 30.06.2026):",
+        reply_markup=_due_kb(),
+    )
+    await call.answer()
+
+
+def _due_kb() -> InlineKeyboardMarkup:
+    """Tezkor sana tanlash (calendar o'rnida) — inline tugmalar."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="+7 kun", callback_data="debt_due:7"),
+                InlineKeyboardButton(text="+14 kun", callback_data="debt_due:14"),
+                InlineKeyboardButton(text="+30 kun", callback_data="debt_due:30"),
+            ],
+            [
+                InlineKeyboardButton(text="Oy oxiri", callback_data="debt_due:eom"),
+                InlineKeyboardButton(text="Muddatsiz", callback_data="debt_due:none"),
+            ],
+        ]
+    )
+
+
+def _end_of_month(d: date) -> date:
+    if d.month == 12:
+        return d.replace(day=31)
+    return d.replace(month=d.month + 1, day=1) - timedelta(days=1)
+
+
+@router.callback_query(NewDebtFSM.due, F.data.startswith("debt_due:"))
+async def newdebt_due_quick(call: CallbackQuery, state: FSMContext) -> None:
+    value = call.data.split(":", 1)[1]
+    if value == "none":
+        due = None
+    elif value == "eom":
+        due = _end_of_month(date.today())
+    else:
+        due = date.today() + timedelta(days=int(value))
+    await state.update_data(due=due.isoformat() if due else None)
+    await state.set_state(NewDebtFSM.confirm)
+    await call.message.edit_text(
+        _newdebt_summary(await state.get_data()), reply_markup=confirm_kb("debt_new")
     )
     await call.answer()
 

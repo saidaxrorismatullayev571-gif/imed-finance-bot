@@ -47,8 +47,11 @@ async def expense_amount(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(amount=str(amount))
     async with acquire() as conn:
+        # Smart tavsiya: ko'p ishlatilgan kategoriyalar tepada
         categories = await conn.fetch(
-            "SELECT id, name FROM expense_categories WHERE is_active ORDER BY name"
+            """SELECT c.id, c.name FROM expense_categories c WHERE c.is_active
+               ORDER BY (SELECT count(*) FROM transactions t
+                         WHERE t.category_id = c.id AND t.kind = 'expense') DESC, c.name"""
         )
     if not categories:
         await state.clear()

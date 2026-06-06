@@ -63,3 +63,13 @@ def fmt_date(value) -> str:
     if value is None:
         return "—"
     return value.strftime("%d.%m.%Y")
+
+
+def mask_phone(phone: str | None) -> str:
+    """Telefon raqamini maskalaydi: "+998901234567" -> "+998*****4567"."""
+    if not phone:
+        return "—"
+    raw = phone.strip()
+    if len(raw) <= 6:
+        return raw
+    return raw[:4] + "*" * (len(raw) - 8) + raw[-4:]
