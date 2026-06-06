@@ -1,15 +1,16 @@
 -- ============================================================
--- Boshlang'ich ma'lumotlar (seed) — iMed kontekstidan olingan standart sozlamalar.
+-- Boshlang'ich ma'lumotlar (seed) — SHAXSIY moliya konteksti.
 -- Bularni keyin bot orqali tahrirlash/qo'shish mumkin.
 -- ============================================================
 
 BEGIN;
 
--- Fondlar
+-- Fondlar (shaxsiy maqsadlar bo'yicha pulni ajratish)
 INSERT INTO funds (name, description) VALUES
-    ('Asosiy',   'Asosiy operatsion fond'),
-    ('Rezerv',   'Zaxira fondi'),
-    ('Dividend', 'Ulushdorlarga taqsimot fondi')
+    ('Jamg''arma',          'Uzoq muddatli jamg''arma'),
+    ('Kundalik xarajatlar', 'Kunlik ehtiyojlar uchun'),
+    ('Zaxira',              'Favqulodda holatlar uchun zaxira'),
+    ('Investitsiya',        'Investitsiyaga ajratilgan mablag''')
 ON CONFLICT (name) DO NOTHING;
 
 -- Kassalar
@@ -21,21 +22,22 @@ ON CONFLICT (name, currency) DO NOTHING;
 
 -- Daromad manbalari
 INSERT INTO income_sources (name) VALUES
-    ('Onlayn kurs'),
-    ('Offline kurs'),
-    ('Kitob'),
-    ('Obuna'),
+    ('Ish haqi'),
+    ('Qo''shimcha daromad'),
+    ('Sovg''a'),
+    ('Investitsiya daromadi'),
     ('Boshqa')
 ON CONFLICT (name) DO NOTHING;
 
--- Xarajat kategoriyalari (asosiy)
+-- Xarajat kategoriyalari
 INSERT INTO expense_categories (name) VALUES
-    ('Ish haqi'),
-    ('Marketing'),
-    ('Ijara'),
-    ('Kontent ishlab chiqarish'),
-    ('Texnik xarajatlar'),
-    ('Soliq'),
+    ('Oziq-ovqat'),
+    ('Transport'),
+    ('Uy-joy'),
+    ('Sog''liq'),
+    ('Ta''lim'),
+    ('Kiyim'),
+    ('Ko''ngilochar'),
     ('Boshqa')
 ON CONFLICT (name, parent_id) DO NOTHING;
 
