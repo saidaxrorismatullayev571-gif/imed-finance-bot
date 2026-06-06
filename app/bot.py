@@ -8,7 +8,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from app.config import config
 from app.db import init_pool, close_pool
-from app.handlers import balances, debt, expense, income, start, transfer
+from app.handlers import balances, debt, expense, income, reports, start, transfer
 from app.services.scheduler import setup_scheduler
 
 logging.basicConfig(
@@ -37,7 +37,7 @@ async def main() -> None:
     dp.include_router(debt.router)
     dp.include_router(transfer.router)
     dp.include_router(balances.router)
-    # Faza 3+ da: reports routeri qo'shiladi
+    dp.include_router(reports.router)
 
     scheduler = setup_scheduler(bot)
 

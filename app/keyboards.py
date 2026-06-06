@@ -13,6 +13,7 @@ BTN_DEBT = "💳 Qarz"
 BTN_TRANSFER = "🔄 Transfer"
 BTN_BALANCES = "📊 Balanslar"
 BTN_OPENING = "🏦 Boshlang'ich balans"
+BTN_REPORTS = "📈 Hisobotlar"
 
 
 def main_menu_kb() -> ReplyKeyboardMarkup:
@@ -22,6 +23,7 @@ def main_menu_kb() -> ReplyKeyboardMarkup:
             [KeyboardButton(text=BTN_INCOME), KeyboardButton(text=BTN_EXPENSE)],
             [KeyboardButton(text=BTN_DEBT), KeyboardButton(text=BTN_TRANSFER)],
             [KeyboardButton(text=BTN_BALANCES), KeyboardButton(text=BTN_OPENING)],
+            [KeyboardButton(text=BTN_REPORTS)],
         ],
         resize_keyboard=True,
     )

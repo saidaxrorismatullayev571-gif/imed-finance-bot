@@ -3,3 +3,7 @@ asyncpg==0.29.0
 APScheduler==3.10.4
 python-dotenv==1.0.1
 aiohttp==3.10.10
+openpyxl==3.1.5
+weasyprint==62.3
+fastapi==0.115.5
+uvicorn[standard]==0.32.1

@@ -146,3 +146,27 @@ yordamchilar (summa parser, formatlash, foydalanuvchi) `app/handlers/common.py` 
 - [ ] Qarz holati to'lov/muddatga qarab avtomatik o'zgaradi
 - [ ] Transfer ikki oyoqli yoziladi, balanslar saqlanadi (UZS↔USD kurs bilan)
 - [ ] CBU kursi `exchange_rates` ga tushadi; eslatmalar belgilangan vaqtda yuboriladi
+
+## Faza 3 — hisobotlar + dashboard
+
+**📈 Hisobotlar** (`app/handlers/reports.py`) menyusi:
+- Matnli: P&L (oylik), balanslar, qarz hisoboti, transfer tarixi.
+- 📥 **Excel** (openpyxl) — Tranzaksiyalar / P&L / Balanslar / Qarzlar varaqlari.
+- 📄 **PDF** (weasyprint) — yig'ma hisobot. weasyprint mavjud bo'lmasa muloyim
+  ogohlantiradi (bot yiqilmaydi).
+
+**📈 Dashboard** — Telegram Web App (`webapp/`, FastAPI + Chart.js):
+- `webapp/main.py` — `GET /api/summary` JSON (kassa/fond/pnl/kategoriya/qarz) + statik.
+- `webapp/static/index.html` — oylik daromad-xarajat (line), fond taqsimoti (doughnut),
+  kassa qoldiqlari (bar), xarajat kategoriyalari (bar).
+- `docker-compose.yml` da `webapp` xizmati (8080-port). `.env` da `WEBAPP_URL` (HTTPS)
+  o'rnatilsa, Hisobotlar menyusida «📈 Dashboard» tugmasi paydo bo'ladi.
+
+> Dashboard tugmasi Telegram talabiga ko'ra **HTTPS** URL talab qiladi (reverse proxy
+> yoki tunnel orqali). `WEBAPP_URL` bo'sh bo'lsa tugma ko'rsatilmaydi.
+
+### Faza 3 — qabul mezoni (acceptance)
+
+- [ ] Matnli hisobotlar (P&L, balanslar, qarz, transfer) to'g'ri ko'rsatiladi
+- [ ] Excel va PDF eksport fayllari yuboriladi
+- [ ] `webapp` xizmati `/api/summary` qaytaradi va dashboard grafiklarni chizadi

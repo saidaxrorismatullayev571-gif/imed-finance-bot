@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>iMed Moliya — Dashboard</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; margin: 0; padding: 16px;
+           background: var(--tg-theme-bg-color, #f5f6f8); color: var(--tg-theme-text-color, #1c1c1e); }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .sub { color: #888; font-size: 13px; margin-bottom: 16px; }
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .card { background: var(--tg-theme-secondary-bg-color, #fff); border-radius: 12px; padding: 12px; }
+    .card .label { font-size: 12px; color: #888; }
+    .card .value { font-size: 18px; font-weight: 600; margin-top: 4px; }
+    .chart-box { background: var(--tg-theme-secondary-bg-color, #fff); border-radius: 12px;
+                 padding: 12px; margin-bottom: 16px; }
+    .chart-box h2 { font-size: 14px; margin: 0 0 8px; }
+    canvas { max-height: 280px; }
+    .err { color: #c0392b; }
+  </style>
+</head>
+<body>
+  <h1>💰 Shaxsiy moliya</h1>
+  <div class="sub" id="updated">Yuklanmoqda...</div>
+
+  <div class="cards">
+    <div class="card"><div class="label">Jami kassa (UZS)</div><div class="value" id="totalWallet">—</div></div>
+    <div class="card"><div class="label">Sof (oxirgi oy)</div><div class="value" id="lastNet">—</div></div>
+    <div class="card"><div class="label">Menga qarzdor</div><div class="value" id="lent">—</div></div>
+    <div class="card"><div class="label">Men qarzdorman</div><div class="value" id="borrowed">—</div></div>
+  </div>
+
+  <div class="chart-box"><h2>Oylik daromad / xarajat</h2><canvas id="pnlChart"></canvas></div>
+  <div class="chart-box"><h2>Fond bo'yicha taqsimot</h2><canvas id="fundChart"></canvas></div>
+  <div class="chart-box"><h2>Kassa qoldiqlari</h2><canvas id="walletChart"></canvas></div>
+  <div class="chart-box"><h2>Xarajat kategoriyalari</h2><canvas id="catChart"></canvas></div>
+
+  <script>
+    if (window.Telegram && Telegram.WebApp) { Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
+
+    const fmt = (n) => new Intl.NumberFormat('ru-RU').format(Math.round(n)) + ' UZS';
+
+    async function load() {
+      let data;
+      try {
+        const res = await fetch('/api/summary');
+        if (!res.ok) throw new Error('API xato: ' + res.status);
+        data = await res.json();
+      } catch (e) {
+        document.getElementById('updated').innerHTML = '<span class="err">Xato: ' + e.message + '</span>';
+        return;
+      }
+      document.getElementById('updated').textContent = 'Yangilandi: ' + new Date().toLocaleString('ru-RU');
+
+      const totalWallet = data.wallets.reduce((s, w) => s + w.balance, 0);
+      document.getElementById('totalWallet').textContent = fmt(totalWallet);
+      const last = data.pnl[data.pnl.length - 1];
+      document.getElementById('lastNet').textContent = last ? fmt(last.income - last.expense) : '—';
+      document.getElementById('lent').textContent = fmt(data.debts.lent);
+      document.getElementById('borrowed').textContent = fmt(data.debts.borrowed);
+
+      new Chart(document.getElementById('pnlChart'), {
+        type: 'line',
+        data: {
+          labels: data.pnl.map(p => p.month),
+          datasets: [
+            { label: 'Daromad', data: data.pnl.map(p => p.income), borderColor: '#27ae60', tension: 0.3 },
+            { label: 'Xarajat', data: data.pnl.map(p => p.expense), borderColor: '#e74c3c', tension: 0.3 },
+          ],
+        },
+        options: { responsive: true },
+      });
+
+      new Chart(document.getElementById('fundChart'), {
+        type: 'doughnut',
+        data: {
+          labels: data.funds.map(f => f.name),
+          datasets: [{ data: data.funds.map(f => Math.abs(f.balance)) }],
+        },
+      });
+
+      new Chart(document.getElementById('walletChart'), {
+        type: 'bar',
+        data: {
+          labels: data.wallets.map(w => w.name),
+          datasets: [{ label: 'Balans (UZS)', data: data.wallets.map(w => w.balance), backgroundColor: '#2980b9' }],
+        },
+      });
+
+      new Chart(document.getElementById('catChart'), {
+        type: 'bar',
+        data: {
+          labels: data.categories.map(c => c.name),
+          datasets: [{ label: 'Xarajat (UZS)', data: data.categories.map(c => c.total), backgroundColor: '#8e44ad' }],
+        },
+        options: { indexAxis: 'y' },
+      });
+    }
+    load();
+  </script>
+</body>
+</html>
