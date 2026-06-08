@@ -9,7 +9,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from app.config import config
 from app.db import init_pool, close_pool
 from app.handlers import admin, balances, debt, expense, income, reports, start, transfer
-from app.middlewares import AuthMiddleware
+from app.middlewares import AuthMiddleware, FSMResetMiddleware
 from app.services.scheduler import setup_scheduler
 
 logging.basicConfig(
@@ -31,6 +31,10 @@ async def main() -> None:
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
     dp = Dispatcher(storage=MemoryStorage())
+
+    # FSM "qopqoni": oqim o'rtasida menyu tugmasi bosilsa state'ni tozalaydi.
+    # Auth'dan oldin turadi (xabarni to'g'ri entry-handlerga yo'naltirish uchun).
+    dp.message.outer_middleware(FSMResetMiddleware())
 
     # Auth: har bir update uchun foydalanuvchini yuklaydi va yozish huquqini tekshiradi
     # (outer_middleware — routing'dan oldin ishlaydi, barcha routerlarga ko'rinadi)

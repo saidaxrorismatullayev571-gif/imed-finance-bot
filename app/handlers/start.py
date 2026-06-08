@@ -25,7 +25,9 @@ def contact_kb() -> ReplyKeyboardMarkup:
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message) -> None:
+async def cmd_start(message: Message, state: FSMContext) -> None:
+    # Oqim o'rtasida /start bosilsa, yarim qolgan holatni tozalaymiz
+    await state.clear()
     async with acquire() as conn:
         user = await conn.fetchrow(
             "SELECT id, role FROM users WHERE telegram_id = $1", message.from_user.id
