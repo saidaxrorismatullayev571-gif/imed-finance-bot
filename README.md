@@ -88,6 +88,39 @@ kunlik kursni kiriting — kurs topilmasa bot yozuvni rad etadi (noto'g'ri
 kursda balans buzilib qolmasligi uchun). Yangi kassa uchun ish boshidagi
 mavjud pulni `/boshlangich` bilan bir marta kiriting.
 
+## Zaxira nusxalash (backup)
+
+Bu bot pul hisobini yuritadi — baza yo'qolishi butun moliyaviy tarixni
+yo'qotish degani. Shuning uchun serverda **kunlik avtomatik zaxira** shart:
+
+```bash
+# Qo'lda sinab ko'rish (server ichida, docker compose ishlab turganda):
+./scripts/backup.sh
+# -> ./backups/imed_finance_<sana>.sql.gz yaratiladi, 30 kundan eskilari o'chiriladi
+```
+
+**DigitalOcean droplet'da cron orqali kunlik avtomatlashtirish:**
+
+```bash
+crontab -e
+# Har kuni soat 03:00 da:
+0 3 * * * cd /path/to/imed-finance-bot && ./scripts/backup.sh >> /var/log/imed-backup.log 2>&1
+```
+
+Zaxiralarni serverdan tashqariga ham ko'chirish tavsiya etiladi (masalan,
+`rclone`/`scp` bilan boshqa joyga) — faqat shu serverda saqlash "server
+o'chsa hammasi yo'qoladi" degani.
+
+**Tiklash** (falokat holatida, DIQQAT — joriy ma'lumotni butunlay
+almashtiradi):
+
+```bash
+./scripts/restore.sh backups/imed_finance_20260717_030000.sql.gz
+```
+
+`backups/` papkasi `.gitignore`da — real moliyaviy ma'lumot hech qachon
+Git'ga tushmaydi.
+
 ## Lokal sinov (Docker'siz)
 
 ```bash
@@ -124,9 +157,11 @@ avtomatik ishga tushiradi (Postgres 16 service konteyneri bilan).
   — qarz funksiyasi so'ralmagani uchun hozircha o'tkazib yuborildi
 - **Faza 3 (davom etmoqda):** ✅ Excel hisobot (`/hisobot`, .xlsx: tranzaksiyalar + balanslar,
   davr bo'yicha) — PDF va Web App dashboard hali qolmoqda
-- **Faza 4 (davom etmoqda):** ✅ testlar (pytest, 30 ta, CI'da avtomatik),
-  ✅ rollarni boshqarish (`/foydalanuvchilar`, `/rol`) va audit ko'rinishi
-  (`/audit`) — backup va PDF/Web dashboard hali qolmoqda
+- ✅ ~~**Faza 4:** rollar, audit ko'rinishi, testlar, backup, polish~~ — hammasi
+  qo'shildi: testlar (pytest, 30 ta, CI'da avtomatik), rollarni boshqarish
+  (`/foydalanuvchilar`, `/rol`), audit ko'rinishi (`/audit`), kunlik zaxira
+  skripti (`scripts/backup.sh` + `restore.sh`) — faqat PDF hisobot va
+  Web App dashboard qolmoqda (Faza 3'dan)
 
 ## Faza 0 — qabul mezoni (acceptance)
 
