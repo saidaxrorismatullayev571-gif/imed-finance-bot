@@ -71,6 +71,7 @@ imed-finance-bot/
 | `/chiqim` | admin, manager | Xarajat qayd etish (kassa → kategoriya → summa → izoh) |
 | `/boshlangich` | admin | Kassaga boshlang'ich balans yozish (`opening` tranzaksiya) |
 | `/kurs` | admin | Valyuta kursini kiritish (1 USD = necha UZS) |
+| `/transfer` | admin, manager | Kassalar orasida pul o'tkazish (hozircha bir xil valyuta ichida) |
 | `/balans` | hamma (ro'yxatdan o'tgan) | Barcha kassa va fond balanslarini ko'rsatadi |
 | `/bekor` | hamma | Joriy kirim/chiqim qayd etish jarayonini bekor qiladi |
 
@@ -95,7 +96,8 @@ python -m app.bot
 
 - ✅ ~~**Faza 1:** daromad / xarajat / kassa / boshlang'ich balans — real moliya jurnali~~
   (`/kirim`, `/chiqim`, `/boshlangich`, `/kurs`, `/balans` — yakunlandi)
-- **Faza 2:** qarz to'liq (eslatma, qisman qaytarish, muddat) + kassalar orasida transfer
+- **Faza 2 (davom etmoqda):** ✅ kassalar orasida transfer (`/transfer`, bir xil valyuta ichida)
+  — qarz funksiyasi so'ralmagani uchun hozircha o'tkazib yuborildi
 - **Faza 3:** PDF/Excel hisobot + Web App dashboard + grafiklar
 - **Faza 4:** rollar, audit ko'rinishi, testlar, backup, polish
 

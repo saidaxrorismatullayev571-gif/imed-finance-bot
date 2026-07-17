@@ -6,7 +6,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from app.config import config
 from app.db import init_pool, close_pool
-from app.handlers import finance, setup, start
+from app.handlers import finance, setup, start, transfer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,7 +28,8 @@ async def main() -> None:
     dp.include_router(start.router)
     dp.include_router(setup.router)
     dp.include_router(finance.router)
-    # Faza 2+ da: transfer, qarz, hisobot routerlari qo'shiladi
+    dp.include_router(transfer.router)
+    # Faza 2+ da: hisobot routerlari qo'shiladi (qarz — hozircha talab qilinmadi)
 
     log.info("Bot ishga tushdi (polling)")
     try:
