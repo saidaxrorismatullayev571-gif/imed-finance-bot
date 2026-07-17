@@ -72,6 +72,7 @@ imed-finance-bot/
 | `/boshlangich` | admin | Kassaga boshlang'ich balans yozish (`opening` tranzaksiya) |
 | `/kurs` | admin | Valyuta kursini kiritish (1 USD = necha UZS) |
 | `/transfer` | admin, manager | Kassalar orasida pul o'tkazish (hozircha bir xil valyuta ichida) |
+| `/hisobot` | hamma (ro'yxatdan o'tgan) | Excel (.xlsx) hisobot: tranzaksiyalar + balanslar (bugun/hafta/oy/hammasi) |
 | `/balans` | hamma (ro'yxatdan o'tgan) | Barcha kassa va fond balanslarini ko'rsatadi |
 | `/bekor` | hamma | Joriy kirim/chiqim qayd etish jarayonini bekor qiladi |
 
@@ -98,7 +99,8 @@ python -m app.bot
   (`/kirim`, `/chiqim`, `/boshlangich`, `/kurs`, `/balans` — yakunlandi)
 - **Faza 2 (davom etmoqda):** ✅ kassalar orasida transfer (`/transfer`, bir xil valyuta ichida)
   — qarz funksiyasi so'ralmagani uchun hozircha o'tkazib yuborildi
-- **Faza 3:** PDF/Excel hisobot + Web App dashboard + grafiklar
+- **Faza 3 (davom etmoqda):** ✅ Excel hisobot (`/hisobot`, .xlsx: tranzaksiyalar + balanslar,
+  davr bo'yicha) — PDF va Web App dashboard hali qolmoqda
 - **Faza 4:** rollar, audit ko'rinishi, testlar, backup, polish
 
 ## Faza 0 — qabul mezoni (acceptance)
