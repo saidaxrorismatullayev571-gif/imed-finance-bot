@@ -1,6 +1,7 @@
 import io
 
 from openpyxl import load_workbook
+from pypdf import PdfReader
 
 from app.db import pool
 from app.handlers import report
@@ -36,13 +37,21 @@ async def test_report_shows_period_picker():
     assert any("davrni tanlang" in a for a in m.answers)
 
 
+async def test_period_choice_shows_format_picker():
+    await make_user("admin", 4003)
+    cb = FakeCallback("rep:all", 4003)
+    await report.cb_report_period(cb)
+    assert any("qaysi formatda" in e for e in cb.message.edits)
+    assert not cb.message.documents
+
+
 async def test_report_xlsx_contains_transactions_and_balances():
-    admin_id = await make_user("admin", 4003)
+    admin_id = await make_user("admin", 4004)
     wid = await wallet_id()
     await _seed_two_transactions(admin_id, wid)
 
-    cb = FakeCallback("rep:all", 4003)
-    await report.cb_report_period(cb)
+    cb = FakeCallback("repfmt:xlsx:all", 4004)
+    await report.cb_report_format(cb)
 
     assert cb.message.documents, "hujjat yuborilishi kerak edi"
     doc, caption = cb.message.documents[0]
@@ -64,8 +73,38 @@ async def test_report_xlsx_contains_transactions_and_balances():
     assert naqd_row[2] == 200000.0
 
 
+async def test_report_pdf_contains_transactions_and_balances():
+    admin_id = await make_user("admin", 4005)
+    wid = await wallet_id()
+    await _seed_two_transactions(admin_id, wid)
+
+    cb = FakeCallback("repfmt:pdf:all", 4005)
+    await report.cb_report_format(cb)
+
+    assert cb.message.documents, "hujjat yuborilishi kerak edi"
+    doc, caption = cb.message.documents[0]
+    assert "2 ta tranzaksiya" in caption
+    assert doc.filename.endswith(".pdf")
+
+    reader = PdfReader(io.BytesIO(doc.data))
+    text = "\n".join(page.extract_text() for page in reader.pages)
+    assert "Kirim" in text
+    assert "Chiqim" in text
+    assert "Kitob" in text
+    assert "Ijara" in text
+    assert "Naqd UZS" in text
+    assert "200 000" in text  # kassa balansi PDF ichida to'g'ri hisoblangan
+
+
 async def test_report_invalid_period_shows_alert():
-    await make_user("admin", 4004)
-    cb = FakeCallback("rep:noexist", 4004)
+    await make_user("admin", 4006)
+    cb = FakeCallback("rep:noexist", 4006)
     await report.cb_report_period(cb)
     assert cb.alerts and "Noto'g'ri davr" in cb.alerts[0][0]
+
+
+async def test_report_invalid_format_shows_alert():
+    await make_user("admin", 4007)
+    cb = FakeCallback("repfmt:docx:all", 4007)
+    await report.cb_report_format(cb)
+    assert cb.alerts and "Noto'g'ri so'rov" in cb.alerts[0][0]

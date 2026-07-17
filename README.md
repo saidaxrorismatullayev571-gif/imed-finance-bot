@@ -72,7 +72,7 @@ imed-finance-bot/
 | `/boshlangich` | admin | Kassaga boshlang'ich balans yozish (`opening` tranzaksiya) |
 | `/kurs` | admin | Valyuta kursini kiritish (1 USD = necha UZS) |
 | `/transfer` | admin, manager | Kassalar orasida pul o'tkazish (hozircha bir xil valyuta ichida) |
-| `/hisobot` | hamma (ro'yxatdan o'tgan) | Excel (.xlsx) hisobot: tranzaksiyalar + balanslar (bugun/hafta/oy/hammasi) |
+| `/hisobot` | hamma (ro'yxatdan o'tgan) | Hisobot: davr (bugun/hafta/oy/hammasi) va format (Excel yoki PDF) tanlab, tranzaksiyalar + balanslarni oladi |
 | `/balans` | hamma (ro'yxatdan o'tgan) | Barcha kassa va fond balanslarini ko'rsatadi |
 | `/bekor` | hamma | Joriy kirim/chiqim qayd etish jarayonini bekor qiladi |
 | `/yordam` | hamma (ro'yxatdan o'tgan) | Rolingizga mos buyruqlar ro'yxatini ko'rsatadi |
@@ -158,10 +158,12 @@ avtomatik ishga tushiradi (Postgres 16 service konteyneri bilan).
 - **Faza 3 (davom etmoqda):** ✅ Excel hisobot (`/hisobot`, .xlsx: tranzaksiyalar + balanslar,
   davr bo'yicha) — PDF va Web App dashboard hali qolmoqda
 - ✅ ~~**Faza 4:** rollar, audit ko'rinishi, testlar, backup, polish~~ — hammasi
-  qo'shildi: testlar (pytest, 30 ta, CI'da avtomatik), rollarni boshqarish
+  qo'shildi: testlar (pytest, 33 ta, CI'da avtomatik), rollarni boshqarish
   (`/foydalanuvchilar`, `/rol`), audit ko'rinishi (`/audit`), kunlik zaxira
-  skripti (`scripts/backup.sh` + `restore.sh`) — faqat PDF hisobot va
-  Web App dashboard qolmoqda (Faza 3'dan)
+  skripti (`scripts/backup.sh` + `restore.sh`)
+- **Faza 3 (deyarli tugadi):** ✅ Excel + ✅ PDF hisobot (`/hisobot` — format
+  tanlanadi) — faqat Web App dashboard qolmoqda (alohida HTTP server +
+  HTTPS talab qiladi, hozircha rejalashtirilmagan)
 
 ## Faza 0 — qabul mezoni (acceptance)
 
