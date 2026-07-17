@@ -62,6 +62,21 @@ imed-finance-bot/
 5. **Telegram'da botingizga `/start` yuboring** → raqamingizni yuboring →
    ro'yxatdan o'tasiz. **Birinchi foydalanuvchi avtomatik admin** bo'ladi.
 
+## Buyruqlar
+
+| Buyruq | Kim ishlata oladi | Vazifasi |
+|---|---|---|
+| `/start` | hamma | Ro'yxatdan o'tish / salomlashish |
+| `/kirim` | admin, manager | Daromad qayd etish (kassa → manba → summa → izoh) |
+| `/chiqim` | admin, manager | Xarajat qayd etish (kassa → kategoriya → summa → izoh) |
+| `/balans` | hamma (ro'yxatdan o'tgan) | Barcha kassa va fond balanslarini ko'rsatadi |
+| `/bekor` | hamma | Joriy kirim/chiqim qayd etish jarayonini bekor qiladi |
+
+USD (yoki UZS bo'lmagan) kassaga yozuv kiritish uchun avval `exchange_rates`
+jadvaliga o'sha kunlik kurs qo'lda/keyingi fazada qo'shilishi kerak — kurs
+topilmasa bot yozuvni rad etadi (noto'g'ri kursda balans buzilib qolmasligi
+uchun).
+
 ## Lokal sinov (Docker'siz)
 
 ```bash
@@ -76,8 +91,9 @@ python -m app.bot
 
 ## Keyingi fazalar
 
-- **Faza 1:** daromad / xarajat / kassa / boshlang'ich balans — real moliya jurnali
-- **Faza 2:** qarz to'liq (eslatma, qisman qaytarish, muddat) + transfer + multi-valyuta
+- ~~**Faza 1:** daromad / xarajat / kassa / boshlang'ich balans — real moliya jurnali~~
+  (`/kirim`, `/chiqim`, `/balans` qo'shildi; boshlang'ich balans kiritish hali yo'q)
+- **Faza 2:** qarz to'liq (eslatma, qisman qaytarish, muddat) + transfer + multi-valyuta kursi kiritish
 - **Faza 3:** PDF/Excel hisobot + Web App dashboard + grafiklar
 - **Faza 4:** rollar, audit ko'rinishi, testlar, backup, polish
 
