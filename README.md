@@ -75,6 +75,10 @@ imed-finance-bot/
 | `/hisobot` | hamma (ro'yxatdan o'tgan) | Excel (.xlsx) hisobot: tranzaksiyalar + balanslar (bugun/hafta/oy/hammasi) |
 | `/balans` | hamma (ro'yxatdan o'tgan) | Barcha kassa va fond balanslarini ko'rsatadi |
 | `/bekor` | hamma | Joriy kirim/chiqim qayd etish jarayonini bekor qiladi |
+| `/yordam` | hamma (ro'yxatdan o'tgan) | Rolingizga mos buyruqlar ro'yxatini ko'rsatadi |
+
+Ro'yxatdan o'tgandan so'ng Telegram'ning "/" menyu tugmasi ham rolingizga mos
+buyruqlar bilan avtomatik to'ldiriladi.
 
 USD (yoki UZS bo'lmagan) kassaga yozuv kiritish uchun avval `/kurs` bilan
 kunlik kursni kiriting — kurs topilmasa bot yozuvni rad etadi (noto'g'ri
