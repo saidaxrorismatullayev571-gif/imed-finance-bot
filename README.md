@@ -69,13 +69,15 @@ imed-finance-bot/
 | `/start` | hamma | Ro'yxatdan o'tish / salomlashish |
 | `/kirim` | admin, manager | Daromad qayd etish (kassa → manba → summa → izoh) |
 | `/chiqim` | admin, manager | Xarajat qayd etish (kassa → kategoriya → summa → izoh) |
+| `/boshlangich` | admin | Kassaga boshlang'ich balans yozish (`opening` tranzaksiya) |
+| `/kurs` | admin | Valyuta kursini kiritish (1 USD = necha UZS) |
 | `/balans` | hamma (ro'yxatdan o'tgan) | Barcha kassa va fond balanslarini ko'rsatadi |
 | `/bekor` | hamma | Joriy kirim/chiqim qayd etish jarayonini bekor qiladi |
 
-USD (yoki UZS bo'lmagan) kassaga yozuv kiritish uchun avval `exchange_rates`
-jadvaliga o'sha kunlik kurs qo'lda/keyingi fazada qo'shilishi kerak — kurs
-topilmasa bot yozuvni rad etadi (noto'g'ri kursda balans buzilib qolmasligi
-uchun).
+USD (yoki UZS bo'lmagan) kassaga yozuv kiritish uchun avval `/kurs` bilan
+kunlik kursni kiriting — kurs topilmasa bot yozuvni rad etadi (noto'g'ri
+kursda balans buzilib qolmasligi uchun). Yangi kassa uchun ish boshidagi
+mavjud pulni `/boshlangich` bilan bir marta kiriting.
 
 ## Lokal sinov (Docker'siz)
 
@@ -91,9 +93,9 @@ python -m app.bot
 
 ## Keyingi fazalar
 
-- ~~**Faza 1:** daromad / xarajat / kassa / boshlang'ich balans — real moliya jurnali~~
-  (`/kirim`, `/chiqim`, `/balans` qo'shildi; boshlang'ich balans kiritish hali yo'q)
-- **Faza 2:** qarz to'liq (eslatma, qisman qaytarish, muddat) + transfer + multi-valyuta kursi kiritish
+- ✅ ~~**Faza 1:** daromad / xarajat / kassa / boshlang'ich balans — real moliya jurnali~~
+  (`/kirim`, `/chiqim`, `/boshlangich`, `/kurs`, `/balans` — yakunlandi)
+- **Faza 2:** qarz to'liq (eslatma, qisman qaytarish, muddat) + kassalar orasida transfer
 - **Faza 3:** PDF/Excel hisobot + Web App dashboard + grafiklar
 - **Faza 4:** rollar, audit ko'rinishi, testlar, backup, polish
 
