@@ -4,10 +4,12 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand, ErrorEvent
+from aiohttp import web
 
 from app.config import config
 from app.db import init_pool, close_pool
-from app.handlers import admin, finance, report, setup, start, transfer
+from app.handlers import admin, dashboard, finance, report, setup, start, transfer
+from app.webapp import build_webapp
 
 logging.basicConfig(
     level=logging.INFO,
@@ -32,7 +34,8 @@ async def main() -> None:
     dp.include_router(transfer.router)
     dp.include_router(report.router)
     dp.include_router(admin.router)
-    # Keyingi: PDF hisobot + Web App dashboard (qarz — hozircha talab qilinmadi)
+    dp.include_router(dashboard.router)
+    # qarz (debt) funksiyasi so'ralmagani uchun hozircha qo'shilmadi
 
     @dp.errors()
     async def global_error_handler(event: ErrorEvent) -> None:
@@ -56,10 +59,25 @@ async def main() -> None:
         ]
     )
 
+    webapp_runner: web.AppRunner | None = None
+    if config.webapp_url:
+        webapp_runner = web.AppRunner(build_webapp())
+        await webapp_runner.setup()
+        site = web.TCPSite(webapp_runner, "0.0.0.0", config.webapp_port)
+        await site.start()
+        log.info(
+            "Web App dashboard ishga tushdi: 0.0.0.0:%s (tashqi: %s)",
+            config.webapp_port, config.webapp_url,
+        )
+    else:
+        log.info("WEBAPP_URL berilmagan — Web App dashboard o'chirilgan")
+
     log.info("Bot ishga tushdi (polling)")
     try:
         await dp.start_polling(bot)
     finally:
+        if webapp_runner is not None:
+            await webapp_runner.cleanup()
         await close_pool()
         log.info("To'xtatildi, ulanishlar yopildi")
 

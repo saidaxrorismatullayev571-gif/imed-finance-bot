@@ -17,7 +17,8 @@ ROLE_LABEL = {"admin": "Administrator", "manager": "Menejer", "viewer": "Kuzatuv
 
 COMMANDS_ALL = [
     BotCommand(command="balans", description="Kassa va fond balanslarini ko'rish"),
-    BotCommand(command="hisobot", description="Excel hisobot olish"),
+    BotCommand(command="dashboard", description="Web App dashboard ochish"),
+    BotCommand(command="hisobot", description="Excel/PDF hisobot olish"),
     BotCommand(command="bekor", description="Joriy amalni bekor qilish"),
     BotCommand(command="yordam", description="Buyruqlar ro'yxati"),
 ]

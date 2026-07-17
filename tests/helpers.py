@@ -44,9 +44,11 @@ class FakeMessage:
         self.contact = contact
         self.answers = []
         self.documents = []
+        self.last_markup = None
 
     async def answer(self, text, reply_markup=None, parse_mode=None):
         self.answers.append(text)
+        self.last_markup = reply_markup
 
     async def answer_document(self, doc, caption=None):
         self.documents.append((doc, caption))

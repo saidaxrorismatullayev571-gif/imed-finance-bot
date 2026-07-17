@@ -79,6 +79,7 @@ imed-finance-bot/
 | `/foydalanuvchilar` | admin | Barcha foydalanuvchilar va ularning rollari ro'yxati |
 | `/rol` | admin | Boshqa foydalanuvchining rolini o'zgartirish (admin/manager/viewer) |
 | `/audit` | admin | So'nggi 20 ta amal (kim, qachon, nima o'zgartirdi) |
+| `/dashboard` | hamma (ro'yxatdan o'tgan) | Web App: balans + so'nggi tranzaksiyalarni brauzer ko'rinishida ochish (WEBAPP_URL sozlangan bo'lsa) |
 
 Ro'yxatdan o'tgandan so'ng Telegram'ning "/" menyu tugmasi ham rolingizga mos
 buyruqlar bilan avtomatik to'ldiriladi.
@@ -87,6 +88,49 @@ USD (yoki UZS bo'lmagan) kassaga yozuv kiritish uchun avval `/kurs` bilan
 kunlik kursni kiriting — kurs topilmasa bot yozuvni rad etadi (noto'g'ri
 kursda balans buzilib qolmasligi uchun). Yangi kassa uchun ish boshidagi
 mavjud pulni `/boshlangich` bilan bir marta kiriting.
+
+## Web App dashboard (ixtiyoriy)
+
+`/dashboard` buyrug'i Telegram ichida ochiladigan, faqat o'qish uchun
+balans + so'nggi tranzaksiyalar sahifasini ko'rsatadi. Bu Telegram
+WebApp texnologiyasi — Telegram **faqat HTTPS manzilni** ochadi, shuning
+uchun oddiy `http://SERVER_IP` yetarli emas.
+
+**Agar sizda domen yo'q, faqat server IP manzili bo'lsa** — bepul, DNS
+sozlashsiz yechim [sslip.io](https://sslip.io) orqali:
+
+1. Server IP manzilingizni toping (masalan `164.90.123.45`).
+2. Nuqtalarni chiziqcha bilan almashtirib, oxiriga `.sslip.io` qo'shing:
+   `164-90-123-45.sslip.io` — bu hostname avtomatik ravishda o'sha IP'ga
+   yo'naltiradi (hech qanday DNS sozlash shart emas, darhol ishlaydi).
+3. `.env` fayliga qo'shing:
+   ```
+   WEBAPP_URL=https://164-90-123-45.sslip.io
+   ```
+4. Serverda 80 va 443 portlari ochiq (firewall/Security Group) ekanini
+   tekshiring — Let's Encrypt sertifikat olish uchun 80-port, HTTPS
+   uchun 443-port kerak.
+5. Caddy bilan birga ishga tushiring (bu servis Web App uchun avtomatik
+   HTTPS sertifikat oladi va botga proksi qiladi):
+   ```bash
+   docker compose --profile webapp up -d --build
+   ```
+   (`--profile webapp` bo'lmasa Caddy umuman ishga tushmaydi — oddiy
+   `docker compose up -d` avvalgidek faqat bot+bazani ko'taradi.)
+6. Bir necha soniyadan so'ng `https://164-90-123-45.sslip.io` HTTPS
+   bilan ochilishi kerak (Caddy sertifikatni birinchi so'rovda avtomatik
+   oladi). Botda `/dashboard` yuboring — tugma chiqadi.
+
+**Agar haqiqiy domeningiz bo'lsa** — xuddi shu qadamlar, faqat 2-bandda
+domeningizni ko'rsating (`WEBAPP_URL=https://moliya.sizning-domen.uz`) va
+domenning A-yozuvi server IP'ga yo'naltirilgan bo'lishi kerak.
+
+**Xavfsizlik:** dashboard sahifasi ochiq URL bo'lsa ham, `/api/dashboard`
+so'rovi har safar Telegram'ning `initData` imzosini (HMAC-SHA256, bot
+tokeningiz bilan) tekshiradi — faqat haqiqiy Telegram mijozidan, sizning
+botingizga ro'yxatdan o'tgan foydalanuvchi nomidan kelgan so'rovlargina
+ma'lumot oladi. Dashboard **faqat o'qish uchun** — pul kiritish/o'zgartirish
+hali ham botning o'zida (`/kirim`, `/chiqim` va h.k.).
 
 ## Zaxira nusxalash (backup)
 
@@ -152,18 +196,15 @@ avtomatik ishga tushiradi (Postgres 16 service konteyneri bilan).
 ## Keyingi fazalar
 
 - ✅ ~~**Faza 1:** daromad / xarajat / kassa / boshlang'ich balans — real moliya jurnali~~
-  (`/kirim`, `/chiqim`, `/boshlangich`, `/kurs`, `/balans` — yakunlandi)
+  (`/kirim`, `/chiqim`, `/boshlangich`, `/kurs`, `/balans`)
 - **Faza 2 (davom etmoqda):** ✅ kassalar orasida transfer (`/transfer`, bir xil valyuta ichida)
   — qarz funksiyasi so'ralmagani uchun hozircha o'tkazib yuborildi
-- **Faza 3 (davom etmoqda):** ✅ Excel hisobot (`/hisobot`, .xlsx: tranzaksiyalar + balanslar,
-  davr bo'yicha) — PDF va Web App dashboard hali qolmoqda
-- ✅ ~~**Faza 4:** rollar, audit ko'rinishi, testlar, backup, polish~~ — hammasi
-  qo'shildi: testlar (pytest, 33 ta, CI'da avtomatik), rollarni boshqarish
-  (`/foydalanuvchilar`, `/rol`), audit ko'rinishi (`/audit`), kunlik zaxira
-  skripti (`scripts/backup.sh` + `restore.sh`)
-- **Faza 3 (deyarli tugadi):** ✅ Excel + ✅ PDF hisobot (`/hisobot` — format
-  tanlanadi) — faqat Web App dashboard qolmoqda (alohida HTTP server +
-  HTTPS talab qiladi, hozircha rejalashtirilmagan)
+- ✅ ~~**Faza 3:** PDF/Excel hisobot + Web App dashboard + grafiklar~~
+  (`/hisobot` — davr + format (Excel/PDF) tanlanadi; `/dashboard` — Web App,
+  sslip.io orqali domensiz HTTPS bilan ham ishlaydi, README'da to'liq qadamlar)
+- ✅ ~~**Faza 4:** rollar, audit ko'rinishi, testlar, backup, polish~~
+  (`/foydalanuvchilar`, `/rol`, `/audit`, pytest — 47 ta, CI'da avtomatik,
+  `scripts/backup.sh` + `restore.sh`)
 
 ## Faza 0 — qabul mezoni (acceptance)
 
