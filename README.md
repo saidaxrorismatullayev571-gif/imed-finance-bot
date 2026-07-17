@@ -97,6 +97,22 @@ psql "$DATABASE_URL" -f app/db/migrations/003_seed.sql
 python -m app.bot
 ```
 
+## Testlar
+
+```bash
+pip install -r requirements-dev.txt
+export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/imed_finance_test"
+export BOT_TOKEN="123:test"
+createdb imed_finance_test   # yoki: psql -c "CREATE DATABASE imed_finance_test;"
+psql "$DATABASE_URL" -f app/db/migrations/001_init.sql
+psql "$DATABASE_URL" -f app/db/migrations/002_audit_triggers.sql
+psql "$DATABASE_URL" -f app/db/migrations/003_seed.sql
+pytest -v
+```
+
+Har bir push/PR'da GitHub Actions (`.github/workflows/ci.yml`) shu testlarni
+avtomatik ishga tushiradi (Postgres 16 service konteyneri bilan).
+
 ## Keyingi fazalar
 
 - ✅ ~~**Faza 1:** daromad / xarajat / kassa / boshlang'ich balans — real moliya jurnali~~
@@ -105,7 +121,8 @@ python -m app.bot
   — qarz funksiyasi so'ralmagani uchun hozircha o'tkazib yuborildi
 - **Faza 3 (davom etmoqda):** ✅ Excel hisobot (`/hisobot`, .xlsx: tranzaksiyalar + balanslar,
   davr bo'yicha) — PDF va Web App dashboard hali qolmoqda
-- **Faza 4:** rollar, audit ko'rinishi, testlar, backup, polish
+- **Faza 4 (davom etmoqda):** ✅ testlar (pytest, 22 ta, CI'da avtomatik) —
+  rollar/audit ko'rinishi/backup hali qolmoqda
 
 ## Faza 0 — qabul mezoni (acceptance)
 
