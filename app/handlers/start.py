@@ -29,6 +29,9 @@ COMMANDS_MANAGER_PLUS = [
 COMMANDS_ADMIN_ONLY = [
     BotCommand(command="boshlangich", description="Kassaga boshlang'ich balans kiritish"),
     BotCommand(command="kurs", description="Valyuta kursini kiritish"),
+    BotCommand(command="foydalanuvchilar", description="Foydalanuvchilar ro'yxati"),
+    BotCommand(command="rol", description="Foydalanuvchi rolini o'zgartirish"),
+    BotCommand(command="audit", description="So'nggi amallar jurnali"),
 ]
 
 

@@ -76,6 +76,9 @@ imed-finance-bot/
 | `/balans` | hamma (ro'yxatdan o'tgan) | Barcha kassa va fond balanslarini ko'rsatadi |
 | `/bekor` | hamma | Joriy kirim/chiqim qayd etish jarayonini bekor qiladi |
 | `/yordam` | hamma (ro'yxatdan o'tgan) | Rolingizga mos buyruqlar ro'yxatini ko'rsatadi |
+| `/foydalanuvchilar` | admin | Barcha foydalanuvchilar va ularning rollari ro'yxati |
+| `/rol` | admin | Boshqa foydalanuvchining rolini o'zgartirish (admin/manager/viewer) |
+| `/audit` | admin | So'nggi 20 ta amal (kim, qachon, nima o'zgartirdi) |
 
 Ro'yxatdan o'tgandan so'ng Telegram'ning "/" menyu tugmasi ham rolingizga mos
 buyruqlar bilan avtomatik to'ldiriladi.
@@ -121,8 +124,9 @@ avtomatik ishga tushiradi (Postgres 16 service konteyneri bilan).
   — qarz funksiyasi so'ralmagani uchun hozircha o'tkazib yuborildi
 - **Faza 3 (davom etmoqda):** ✅ Excel hisobot (`/hisobot`, .xlsx: tranzaksiyalar + balanslar,
   davr bo'yicha) — PDF va Web App dashboard hali qolmoqda
-- **Faza 4 (davom etmoqda):** ✅ testlar (pytest, 22 ta, CI'da avtomatik) —
-  rollar/audit ko'rinishi/backup hali qolmoqda
+- **Faza 4 (davom etmoqda):** ✅ testlar (pytest, 30 ta, CI'da avtomatik),
+  ✅ rollarni boshqarish (`/foydalanuvchilar`, `/rol`) va audit ko'rinishi
+  (`/audit`) — backup va PDF/Web dashboard hali qolmoqda
 
 ## Faza 0 — qabul mezoni (acceptance)
 

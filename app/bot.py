@@ -7,7 +7,7 @@ from aiogram.types import BotCommand, ErrorEvent
 
 from app.config import config
 from app.db import init_pool, close_pool
-from app.handlers import finance, report, setup, start, transfer
+from app.handlers import admin, finance, report, setup, start, transfer
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,6 +31,7 @@ async def main() -> None:
     dp.include_router(finance.router)
     dp.include_router(transfer.router)
     dp.include_router(report.router)
+    dp.include_router(admin.router)
     # Keyingi: PDF hisobot + Web App dashboard (qarz — hozircha talab qilinmadi)
 
     @dp.errors()
