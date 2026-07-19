@@ -750,6 +750,12 @@ bot.callbackQuery(/^xod:rol:(.+)$/, async (ctx) => {
 let botPromise: Promise<Bot> = initBot();
 
 Deno.serve(async (req) => {
+  // GET/health-check va bo'sh bodyli so'rovlarni grammY'ga bermaymiz —
+  // req.json() bo'sh body'da SyntaxError otadi va bu Deno jarayonini "unhandled
+  // rejection" sifatida butunlay yiqitib yuboradi (try/catch bu holatni ushlay olmaydi).
+  if (req.method !== "POST" || req.headers.get("content-length") === "0") {
+    return new Response("ok");
+  }
   try {
     const bot = await botPromise;
     const handleUpdate = webhookCallback(bot, "std/http");
