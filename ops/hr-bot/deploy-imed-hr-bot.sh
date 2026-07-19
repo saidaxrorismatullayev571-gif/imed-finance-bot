@@ -3,7 +3,11 @@ set -euo pipefail
 
 echo "== iMed HR Bot -- Contabo serverga o'rnatish boshlandi =="
 
-# 1) Deno o'rnatish
+# 1) Deno o'rnatish (unzip kerak bo'ladi)
+if ! command -v unzip &>/dev/null; then
+  sudo apt-get update -y
+  sudo apt-get install -y unzip
+fi
 if ! command -v deno &>/dev/null && [ ! -x "$HOME/.deno/bin/deno" ]; then
   curl -fsSL https://deno.land/install.sh | sh
 fi
