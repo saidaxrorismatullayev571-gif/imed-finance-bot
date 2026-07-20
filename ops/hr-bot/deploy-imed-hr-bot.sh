@@ -16,21 +16,49 @@ export PATH="$DENO_INSTALL/bin:$PATH"
 DENO_BIN="$(command -v deno || echo "$HOME/.deno/bin/deno")"
 echo "Deno: $DENO_BIN ($($DENO_BIN --version | head -1))"
 
-# 2) Caddy o'rnatish (avtomatik HTTPS uchun)
-if ! command -v caddy &>/dev/null; then
-  sudo apt-get update -y
-  sudo apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl gnupg
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-  sudo apt-get update -y
-  sudo apt-get install -y caddy
-fi
-echo "Caddy: $(caddy version)"
-
-# 3) Loyiha papkasi
+# 2) Loyiha papkasi
+# (HTTPS/reverse-proxy allaqachon mavjud Docker Caddy -- n8n-caddy-1 -- orqali
+#  /root/n8n/Caddyfile'da sozlangan, shu skript uni boshqarmaydi.)
 sudo mkdir -p /opt/imed-hr-bot
 sudo chown "$USER":"$USER" /opt/imed-hr-bot
 cd /opt/imed-hr-bot
+
+# 3) XAVFSIZLIK: joriy (ishlab turgan) versiyani zaxiralab olamiz.
+#    Yangi kod ishlamasa, avtomatik shu zaxiraga qaytariladi.
+BACKUP_DIR="/opt/imed-hr-bot/backups/$(date +%Y%m%d_%H%M%S)"
+HAS_BACKUP=0
+if [ -f index.ts ]; then
+  mkdir -p "$BACKUP_DIR"
+  for f in index.ts render.ts excel.ts pdf.ts; do
+    if [ -f "$f" ]; then cp "$f" "$BACKUP_DIR/$f"; fi
+  done
+  HAS_BACKUP=1
+  echo "-- Zaxira olindi: $BACKUP_DIR --"
+else
+  echo "-- Birinchi o'rnatish, zaxira shart emas --"
+fi
+
+rollback_and_exit() {
+  echo ""
+  echo "!!! XATOLIK: $1 !!!"
+  if [ "$HAS_BACKUP" = "1" ]; then
+    echo "Oldingi (ishlab turgan) versiyaga qaytarilmoqda..."
+    for f in index.ts render.ts excel.ts pdf.ts; do
+      if [ -f "$BACKUP_DIR/$f" ]; then cp "$BACKUP_DIR/$f" "$f"; fi
+    done
+    sudo systemctl restart imed-hr-bot 2>/dev/null || true
+    sleep 2
+    if sudo systemctl is-active --quiet imed-hr-bot; then
+      echo "Muvaffaqiyatli qaytarildi -- bot ESKI (ishlagan) kod bilan davom etmoqda."
+      echo "O'ZGARISHLAR O'RNATILMADI. Xatoni tuzatib, qaytadan urinib ko'ring."
+    else
+      echo "DIQQAT: qaytarishda ham muammo bor. Qo'lda tekshiring: sudo journalctl -u imed-hr-bot -n 60"
+    fi
+  else
+    echo "Bu birinchi o'rnatish edi, qaytariladigan eski versiya yo'q."
+  fi
+  exit 1
+}
 
 echo "-- Fayllar yozilmoqda --"
 cat > index.ts <<'IMEDHRBOT_INDEX_EOF'
@@ -1331,6 +1359,12 @@ else
   echo ".env allaqachon mavjud, o'zgartirilmadi."
 fi
 
+echo "-- Yangi kodni tekshirish (deno check) --"
+if ! "$DENO_BIN" check index.ts; then
+  rollback_and_exit "yangi kodda TypeScript xatosi topildi"
+fi
+echo "Kod tekshiruvi OK."
+
 echo "-- systemd xizmati sozlanmoqda --"
 sudo tee /etc/systemd/system/imed-hr-bot.service > /dev/null <<SYSTEMD_EOF
 [Unit]
@@ -1354,16 +1388,15 @@ sudo systemctl daemon-reload
 sudo systemctl enable imed-hr-bot
 sudo systemctl restart imed-hr-bot
 
-echo "-- Caddy (avtomatik HTTPS) sozlanmoqda --"
-HOST="84-247-182-49.nip.io"
-sudo tee /etc/caddy/Caddyfile > /dev/null <<CADDY_EOF
-$HOST {
-    reverse_proxy localhost:8000
-}
-CADDY_EOF
-sudo systemctl restart caddy
+echo "-- Ishga tushganini tekshirish --"
+sleep 3
+if sudo systemctl is-active --quiet imed-hr-bot && curl -sf -o /dev/null http://localhost:8000; then
+  echo "Bot muvaffaqiyatli ishga tushdi va javob bermoqda."
+else
+  rollback_and_exit "yangi kod ishga tushmadi yoki javob bermayapti (sudo journalctl -u imed-hr-bot -n 60 orqali tekshiring)"
+fi
 
-sleep 2
+HOST="84-247-182-49.nip.io"
 echo ""
 echo "=========================================="
 echo " O'RNATISH TUGADI"
@@ -1372,12 +1405,15 @@ echo "=========================================="
 echo ""
 echo "Holatni tekshirish:   sudo systemctl status imed-hr-bot"
 echo "Loglarni ko'rish:     sudo journalctl -u imed-hr-bot -f"
-echo "Caddy holatini ko'rish: sudo systemctl status caddy"
+echo "Eski zaxiralar:       ls /opt/imed-hr-bot/backups/"
 echo ""
-echo "KEYINGI QADAM (majburiy):"
+echo "(HTTPS/reverse-proxy allaqachon Docker Caddy -- n8n-caddy-1 -- orqali sozlangan,"
+echo " bu skript unga tegmaydi.)"
+echo ""
+echo "Agar .env hali to'ldirilmagan bo'lsa:"
 echo "1. /opt/imed-hr-bot/.env ichidagi SUPABASE_SERVICE_ROLE_KEY ni to'ldiring"
 echo "2. sudo systemctl restart imed-hr-bot"
 echo "3. Tekshirish: curl -i https://$HOST   (javob kelishi kerak, xatolik bo'lmasin)"
-echo "4. Shundan keyin webhook'ni almashtirish uchun (O'ZINGIZNING BOT TOKENINGIZ bilan) shu buyruqni ishga tushiring:"
+echo "4. Webhook almashtirish uchun (O'ZINGIZNING BOT TOKENINGIZ bilan):"
 echo "   curl \"https://api.telegram.org/bot<BOT_TOKEN>/setWebhook?url=https://$HOST\""
 echo "   (<BOT_TOKEN> o'rniga haqiqiy tokenni qo'ying -- bu skriptga yozilmagan, xavfsizlik uchun)"
