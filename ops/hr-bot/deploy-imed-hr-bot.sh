@@ -355,12 +355,16 @@ bot.on("message:video_note", async (ctx) => {
 bot.hears(BTN_XODIMLAR, async (ctx) => {
   const x = await getXodim(ctx.from!.id);
   if (!x || !(await isBoshqaruvchi(x))) return ctx.reply("Sizda bu bo'limga kirish huquqi yo'q.");
-  const { data: list } = await sb.from("xodimlar").select("ism,rol,bolim").eq("arxiv", false).order("ism");
+  const { data: list } = await sb.from("xodimlar").select("ism,rol,bolim").eq("arxiv", false)
+    .order("bolim", { ascending: true, nullsFirst: false }).order("ism");
   let txt = "<b>Xodimlar ro'yxati</b>\n\n";
-  (list ?? []).forEach((r, i) => {
-    txt += `${i + 1}. <b>${escHtml(r.ism)}</b> — ${escHtml(r.rol)}${r.bolim ? " (" + escHtml(r.bolim) + ")" : ""}\n`;
+  let oxirgiBolim: string | undefined;
+  (list ?? []).forEach((r) => {
+    const b = r.bolim || "Bo'limsiz";
+    if (b !== oxirgiBolim) { txt += `<b>— ${escHtml(b)} —</b>\n`; oxirgiBolim = b; }
+    txt += `${escHtml(r.ism)} — ${escHtml(r.rol)}\n`;
   });
-  const kb = new InlineKeyboard().text("Qo'shish", "xod:add").row().text("Arxivlash", "xod:arx");
+  const kb = new InlineKeyboard().text("Qo'shish", "xod:add").text("Arxivlash", "xod:arx").row().text("Bo'limlar", "bol:list");
   await ctx.reply(txt || "Xodimlar yo'q.", { parse_mode: "HTML", reply_markup: kb });
 });
 
@@ -391,6 +395,55 @@ bot.callbackQuery(/^xod:arxq:(\d+)$/, async (ctx) => {
   await ctx.reply("Arxivlandi.");
 });
 
+// ── BO'LIMLAR ──────────────────────────────────────────────────────
+bot.callbackQuery("bol:list", async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const x = await getXodim(ctx.from!.id);
+  if (!x || !(await isBoshqaruvchi(x))) return;
+  const { data: list } = await sb.from("bolimlar").select("nom").eq("arxiv", false).order("nom");
+  let txt = "<b>Bo'limlar</b>\n\n";
+  (list ?? []).forEach((r, i) => { txt += `${i + 1}. ${escHtml(r.nom)}\n`; });
+  const kb = new InlineKeyboard().text("+ Yangi bo'lim", "bol:add").row().text("Arxivlash", "bol:arx");
+  await ctx.reply(txt || "Bo'limlar yo'q.", { parse_mode: "HTML", reply_markup: kb });
+});
+
+bot.callbackQuery("bol:add", async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const x = await getXodim(ctx.from!.id);
+  if (!x || !(await isBoshqaruvchi(x))) return;
+  await setSess(ctx.from!.id, "bolim_add_nom", {});
+  await ctx.reply("Yangi bo'lim nomini yuboring:", { reply_markup: new Keyboard().text(BTN_BEKOR).resized() });
+});
+
+bot.callbackQuery("bol:arx", async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const x = await getXodim(ctx.from!.id);
+  if (!x || !(await isBoshqaruvchi(x))) return;
+  const { data: list } = await sb.from("bolimlar").select("id,nom").eq("arxiv", false).order("nom");
+  const kb = new InlineKeyboard();
+  (list ?? []).forEach((r) => kb.text(r.nom, `bol:arxq:${r.id}`).row());
+  await ctx.reply("Qaysi bo'limni arxivlaymiz?", { reply_markup: kb });
+});
+
+bot.callbackQuery(/^bol:arxq:(\d+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const x = await getXodim(ctx.from!.id);
+  if (!x || !(await isBoshqaruvchi(x))) return;
+  const id = parseInt(ctx.match![1]);
+  await sb.from("bolimlar").update({ arxiv: true }).eq("id", id);
+  await ctx.reply("Arxivlandi.");
+});
+
+const BOLIM_YOQ = "_yoq_";
+
+async function bolimTanlashKb(prefix: string): Promise<InlineKeyboard> {
+  const { data: list } = await sb.from("bolimlar").select("nom").eq("arxiv", false).order("nom");
+  const kb = new InlineKeyboard();
+  (list ?? []).forEach((r) => kb.text(r.nom, `${prefix}:${r.nom}`).row());
+  kb.text("Bo'limsiz", `${prefix}:${BOLIM_YOQ}`);
+  return kb;
+}
+
 async function rolTanlashKb(prefix: string): Promise<InlineKeyboard> {
   const { data: rollar } = await sb.from("rollar").select("nom").order("nom");
   const kb = new InlineKeyboard();
@@ -419,6 +472,14 @@ bot.callbackQuery("snv:add", async (ctx) => {
   await ctx.answerCallbackQuery();
   await setSess(ctx.from!.id, "sinov_add_ism", {});
   await ctx.reply("Sinovchi to'liq ismini yuboring:", { reply_markup: new Keyboard().text(BTN_BEKOR).resized() });
+});
+
+bot.callbackQuery(/^snv:bolim:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const bolim = ctx.match![1] === BOLIM_YOQ ? null : ctx.match![1];
+  const sess = await getSess(ctx.from!.id);
+  await setSess(ctx.from!.id, "sinov_add_summa", { ...sess.data, bolim });
+  await ctx.reply("Sinov davri uchun umumiy summani kiriting (so'mda, masalan 400000):");
 });
 
 bot.callbackQuery(/^snv:(\d+)$/, async (ctx) => {
@@ -496,10 +557,13 @@ bot.callbackQuery("hsb:d:maxsus", async (ctx) => {
 
 async function hisobotGenerate(chatId: number, boshlanish: string, tugash: string) {
   const { data: rows } = await sb.rpc("davomat_oraliq", { p_boshlanish: boshlanish, p_tugash: tugash });
-  const list = (rows ?? []) as { ism: string; kelgan_kun: number; jami_soat: number; kech_soni: number }[];
+  const list = (rows ?? []) as { ism: string; bolim: string | null; kelgan_kun: number; jami_soat: number; kech_soni: number }[];
   let txt = `<b>DAVOMAT HISOBOTI</b>\n${boshlanish} — ${tugash}\n\n`;
-  list.forEach((r, i) => {
-    txt += `${i + 1}. <b>${escHtml(r.ism)}</b> — ${r.kelgan_kun} kun, ${r.jami_soat} soat (kech: ${r.kech_soni})\n`;
+  let oxirgiBolim: string | undefined;
+  list.forEach((r) => {
+    const b = r.bolim || "Bo'limsiz";
+    if (b !== oxirgiBolim) { txt += `<b>— ${escHtml(b)} —</b>\n`; oxirgiBolim = b; }
+    txt += `${escHtml(r.ism)} — ${r.kelgan_kun} kun, ${r.jami_soat} soat (kech: ${r.kech_soni})\n`;
   });
   await bot.api.sendMessage(chatId, txt, { parse_mode: "HTML" });
 }
@@ -521,9 +585,11 @@ bot.callbackQuery(/^hsb:f:(matn|rasm|excel|pdf)$/, async (ctx) => {
   if (bitKun) {
     // Har doim so'rov paytidagi JONLI holat (view'dan to'g'ridan-to'g'ri o'qiladi, kesh yo'q) —
     // masalan tushlik vaqtida so'ralsa, o'sha ondagi haqiqiy holatni beradi.
-    const { data: kunData } = await sb.from("v_davomat_kun").select("ism,keldi,ketdi,sof_min,holat").eq("sana", tugash).order("ism");
+    const { data: kunData } = await sb.from("v_davomat_kun").select("ism,bolim,keldi,ketdi,sof_min,holat").eq("sana", tugash)
+      .order("bolim", { ascending: true, nullsFirst: false }).order("ism");
     const rows: DavomatRow[] = (kunData ?? []).map((r) => ({
       ism: r.ism,
+      bolim: r.bolim,
       keldi: r.keldi ? timeHms(new Date(r.keldi)) : "—",
       ketdi: r.ketdi ? timeHms(new Date(r.ketdi)) : "—",
       soat: r.keldi ? Math.round((r.sof_min / 60) * 10) / 10 : null,
@@ -533,7 +599,7 @@ bot.callbackQuery(/^hsb:f:(matn|rasm|excel|pdf)$/, async (ctx) => {
       const png = await davomatPng(tugash, rows);
       await bot.api.sendPhoto(ctx.chat!.id, new InputFile(png, "davomat.png"));
     } else if (fmt === "excel") {
-      const xrows: DavomatXRow[] = rows.map((r) => ({ ism: r.ism, keldi: r.keldi, ketdi: r.ketdi, soat: r.soat, holat: r.holat }));
+      const xrows: DavomatXRow[] = rows.map((r) => ({ ism: r.ism, bolim: r.bolim, keldi: r.keldi, ketdi: r.ketdi, soat: r.soat, holat: r.holat }));
       const xlsx = await davomatXlsx(tugash, xrows);
       await bot.api.sendDocument(ctx.chat!.id, new InputFile(xlsx, `davomat_${tugash}.xlsx`));
     } else if (fmt === "pdf") {
@@ -546,14 +612,14 @@ bot.callbackQuery(/^hsb:f:(matn|rasm|excel|pdf)$/, async (ctx) => {
 
   // Ko'p kunlik davr (Hafta/Oy/Yil/Maxsus) — davomat_oraliq RPC orqali jonli agregatsiya
   const { data: oraliqData } = await sb.rpc("davomat_oraliq", { p_boshlanish: boshlanish, p_tugash: tugash });
-  const rows: DavomatOraliqRow[] = ((oraliqData ?? []) as { ism: string; kelgan_kun: number; jami_soat: number; kech_soni: number }[])
-    .map((r) => ({ ism: r.ism, kelgan_kun: r.kelgan_kun, jami_soat: Number(r.jami_soat), kech_soni: r.kech_soni }));
+  const rows: DavomatOraliqRow[] = ((oraliqData ?? []) as { ism: string; bolim: string | null; kelgan_kun: number; jami_soat: number; kech_soni: number }[])
+    .map((r) => ({ ism: r.ism, bolim: r.bolim, kelgan_kun: r.kelgan_kun, jami_soat: Number(r.jami_soat), kech_soni: r.kech_soni }));
 
   if (fmt === "rasm") {
     const png = await davomatOraliqPng(boshlanish, tugash, rows);
     await bot.api.sendPhoto(ctx.chat!.id, new InputFile(png, "davomat.png"));
   } else if (fmt === "excel") {
-    const xrows: DavomatOraliqXRow[] = rows.map((r) => ({ ism: r.ism, kelgan_kun: r.kelgan_kun, jami_soat: r.jami_soat, kech_soni: r.kech_soni }));
+    const xrows: DavomatOraliqXRow[] = rows.map((r) => ({ ism: r.ism, bolim: r.bolim, kelgan_kun: r.kelgan_kun, jami_soat: r.jami_soat, kech_soni: r.kech_soni }));
     const xlsx = await davomatOraliqXlsx(boshlanish, tugash, xrows);
     await bot.api.sendDocument(ctx.chat!.id, new InputFile(xlsx, `davomat_${boshlanish}_${tugash}.xlsx`));
   } else if (fmt === "pdf") {
@@ -650,12 +716,7 @@ bot.on("message:text", async (ctx) => {
     const id = parseInt(text);
     if (!id || isNaN(id)) return ctx.reply("Raqam noto'g'ri. Faqat Telegram ID raqamini yuboring.");
     await setSess(tgId, "xodim_add_bolim", { ...sess.data, telegram_id: id });
-    await ctx.reply("Bo'limini yuboring (masalan: Sotuv), yoki '-' deb yozing:");
-    return;
-  }
-  if (sess.step === "xodim_add_bolim") {
-    await setSess(tgId, "xodim_add_rol", { ...sess.data, bolim: text === "-" ? null : text });
-    await ctx.reply("Rolini tanlang:", { reply_markup: await rolTanlashKb("xod:rol") });
+    await ctx.reply("Bo'limini tanlang:", { reply_markup: await bolimTanlashKb("xod:bolim") });
     return;
   }
   if (sess.step === "sinov_add_ism") {
@@ -667,12 +728,18 @@ bot.on("message:text", async (ctx) => {
     const id = parseInt(text);
     if (!id || isNaN(id)) return ctx.reply("Raqam noto'g'ri. Qaytadan yuboring.");
     await setSess(tgId, "sinov_add_bolim", { ...sess.data, telegram_id: id });
-    await ctx.reply("Bo'limini yuboring (masalan: Sotuv(sinov)):");
+    await ctx.reply("Bo'limini tanlang:", { reply_markup: await bolimTanlashKb("snv:bolim") });
     return;
   }
-  if (sess.step === "sinov_add_bolim") {
-    await setSess(tgId, "sinov_add_summa", { ...sess.data, bolim: text });
-    await ctx.reply("Sinov davri uchun umumiy summani kiriting (so'mda, masalan 400000):");
+  if (sess.step === "bolim_add_nom") {
+    const { error } = await sb.from("bolimlar").insert({ nom: text });
+    await clearSess(tgId);
+    const x = await getXodim(tgId);
+    if (error) {
+      await ctx.reply(`Xatolik: "${text}" bo'limi allaqachon mavjud bo'lishi mumkin.`, { reply_markup: x ? await mainMenu(x) : undefined });
+    } else {
+      await ctx.reply(`Bo'lim qo'shildi: ${text}`, { reply_markup: x ? await mainMenu(x) : undefined });
+    }
     return;
   }
   if (sess.step === "sinov_add_summa") {
@@ -734,6 +801,14 @@ bot.on("message:text", async (ctx) => {
   }
 });
 
+bot.callbackQuery(/^xod:bolim:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const bolim = ctx.match![1] === BOLIM_YOQ ? null : ctx.match![1];
+  const sess = await getSess(ctx.from!.id);
+  await setSess(ctx.from!.id, "xodim_add_rol", { ...sess.data, bolim });
+  await ctx.reply("Rolini tanlang:", { reply_markup: await rolTanlashKb("xod:rol") });
+});
+
 bot.callbackQuery(/^xod:rol:(.+)$/, async (ctx) => {
   await ctx.answerCallbackQuery();
   const rol = ctx.match![1];
@@ -753,9 +828,6 @@ bot.callbackQuery(/^xod:rol:(.+)$/, async (ctx) => {
 let botPromise: Promise<Bot> = initBot();
 
 Deno.serve(async (req) => {
-  // GET/health-check va bo'sh bodyli so'rovlarni grammY'ga bermaymiz —
-  // req.json() bo'sh body'da SyntaxError otadi va bu Deno jarayonini "unhandled
-  // rejection" sifatida butunlay yiqitib yuboradi (try/catch bu holatni ushlay olmaydi).
   if (req.method !== "POST" || req.headers.get("content-length") === "0") {
     return new Response("ok");
   }
@@ -841,7 +913,22 @@ function gauge(pct: number): string {
 }
 const CARD = "background:white;border-radius:18px;box-shadow:0 6px 20px rgba(20,60,110,0.10);padding:22px 24px;display:flex;";
 
-export interface DavomatRow { ism: string; keldi: string; ketdi: string; soat: number | null; holat: string | null; }
+export interface DavomatRow { ism: string; bolim?: string | null; keldi: string; ketdi: string; soat: number | null; holat: string | null; }
+
+function bolimHeaderRow(bolim: string): string {
+  return `<div style="display:flex;align-items:center;padding:7px 14px;background:#DCEAFB;">
+    <div style="display:flex;font-size:12px;font-weight:700;color:#0E2A47;letter-spacing:0.5px;">${esc(bolim.toUpperCase())}</div>
+  </div>`;
+}
+function groupedRowsHtml<T extends { bolim?: string | null }>(rows: T[], tr: (r: T, i: number) => string): string {
+  let oxirgiBolim: string | undefined;
+  return rows.map((r, i) => {
+    const b = r.bolim || "Bo'limsiz";
+    let html = "";
+    if (b !== oxirgiBolim) { html += bolimHeaderRow(b); oxirgiBolim = b; }
+    return html + tr(r, i);
+  }).join("");
+}
 
 export async function davomatPng(sana: string, rows: DavomatRow[]): Promise<Uint8Array> {
   const present = rows.filter((r) => r.holat && r.soat !== null);
@@ -919,7 +1006,7 @@ export async function davomatPng(sana: string, rows: DavomatRow[]): Promise<Uint
           ${th("Xodim", "210px")}${th("Keldi", "85px")}${th("Ketdi", "85px")}${th("Soat", "64px", "flex-end")}
           <div style="display:flex;flex:1;justify-content:flex-end;font-size:14px;font-weight:700;color:white;">Holat</div>
         </div>
-        ${rows.map(tr).join("")}
+        ${groupedRowsHtml(rows, tr)}
         <div style="display:flex;align-items:center;padding:13px 14px;background:#EAF3FC;border-top:2px solid #2E86D6;">
           <div style="display:flex;width:210px;font-size:16px;font-weight:700;color:#0E2A47;">JAMI</div>
           <div style="display:flex;flex:1;font-size:16px;font-weight:700;color:#0E2A47;">${kelgan}/${jami} keldi · ${(jamiSoat).toFixed(1)} soat</div>
@@ -945,7 +1032,7 @@ export async function davomatPng(sana: string, rows: DavomatRow[]): Promise<Uint
   return await toPng(markup, 1452, 1180);
 }
 
-export interface DavomatOraliqRow { ism: string; kelgan_kun: number; jami_soat: number; kech_soni: number; }
+export interface DavomatOraliqRow { ism: string; bolim?: string | null; kelgan_kun: number; jami_soat: number; kech_soni: number; }
 
 export async function davomatOraliqPng(boshlanish: string, tugash: string, rows: DavomatOraliqRow[]): Promise<Uint8Array> {
   const jamiKelganKun = rows.reduce((s, r) => s + (r.kelgan_kun || 0), 0);
@@ -1002,7 +1089,7 @@ export async function davomatOraliqPng(boshlanish: string, tugash: string, rows:
           ${th("Xodim", "260px")}${th("Kelgan", "120px")}${th("Soat", "120px")}
           <div style="display:flex;flex:1;justify-content:flex-end;font-size:14px;font-weight:700;color:white;">Kech</div>
         </div>
-        ${rows.map(tr).join("")}
+        ${groupedRowsHtml(rows, tr)}
       </div>
       <div style="${CARD}flex-direction:column;flex:1;">
         <div style="display:flex;font-size:22px;font-weight:700;color:#0E2A47;margin-bottom:14px;">Ish soati — reyting</div>
@@ -1052,6 +1139,15 @@ function headerRow(row: any, bg: string) {
   });
 }
 
+// deno-lint-ignore no-explicit-any
+function bolimHeaderRow(ws: any, colCount: number, bolim: string) {
+  const row = ws.addRow([bolim.toUpperCase()]);
+  ws.mergeCells(`A${row.number}:${String.fromCharCode(64 + colCount)}${row.number}`);
+  row.getCell(1).font = { bold: true, size: 11, color: { argb: NAVY } };
+  row.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDCEAFB" } };
+  row.height = 18;
+}
+
 export interface MaoshXRow { ism: string; rol: string; jami_soat: number; baza: number; bonus: number; yakuniy: number; }
 
 export async function maoshXlsx(oy: string, rows: MaoshXRow[]): Promise<Uint8Array> {
@@ -1085,7 +1181,7 @@ export async function maoshXlsx(oy: string, rows: MaoshXRow[]): Promise<Uint8Arr
   return new Uint8Array(buf as ArrayBuffer);
 }
 
-export interface DavomatOraliqXRow { ism: string; kelgan_kun: number; jami_soat: number; kech_soni: number; }
+export interface DavomatOraliqXRow { ism: string; bolim?: string | null; kelgan_kun: number; jami_soat: number; kech_soni: number; }
 
 export async function davomatOraliqXlsx(boshlanish: string, tugash: string, rows: DavomatOraliqXRow[]): Promise<Uint8Array> {
   const ExcelJS = (await import("npm:exceljs@4.4.0")).default;
@@ -1095,7 +1191,10 @@ export async function davomatOraliqXlsx(boshlanish: string, tugash: string, rows
   banner(ws, "A1:D1", `DAVOMAT HISOBOTI — ${boshlanish} - ${tugash}`);
   headerRow(ws.addRow(["Xodim", "Kelgan kun", "Jami soat", "Kech soni"]), HEADBLUE);
 
+  let oxirgiBolim: string | undefined;
   rows.forEach((r, i) => {
+    const b = r.bolim || "Bo'limsiz";
+    if (b !== oxirgiBolim) { bolimHeaderRow(ws, 4, b); oxirgiBolim = b; }
     const row = ws.addRow([r.ism, r.kelgan_kun, Number(r.jami_soat), r.kech_soni]);
     row.height = 20;
     // deno-lint-ignore no-explicit-any
@@ -1121,7 +1220,7 @@ export async function davomatOraliqXlsx(boshlanish: string, tugash: string, rows
   return new Uint8Array(buf as ArrayBuffer);
 }
 
-export interface DavomatXRow { ism: string; keldi: string; ketdi: string; soat: number | null; holat: string | null; }
+export interface DavomatXRow { ism: string; bolim?: string | null; keldi: string; ketdi: string; soat: number | null; holat: string | null; }
 
 export async function davomatXlsx(sana: string, rows: DavomatXRow[]): Promise<Uint8Array> {
   const ExcelJS = (await import("npm:exceljs@4.4.0")).default;
@@ -1134,7 +1233,10 @@ export async function davomatXlsx(sana: string, rows: DavomatXRow[]): Promise<Ui
   const holatRang: Record<string, [string, string]> = {
     "Vaqtida": [OKBG, OKFG], "Kech qoldi": [WARNBG, WARNFG], "Avtomatik": [AUTOBG, AUTOFG],
   };
+  let oxirgiBolim: string | undefined;
   rows.forEach((r, i) => {
+    const b = r.bolim || "Bo'limsiz";
+    if (b !== oxirgiBolim) { bolimHeaderRow(ws, 5, b); oxirgiBolim = b; }
     const holat = r.holat ?? "Kelmadi";
     const row = ws.addRow([r.ism, r.keldi, r.ketdi, r.soat === null ? "—" : Number(r.soat), holat]);
     row.height = 20;
