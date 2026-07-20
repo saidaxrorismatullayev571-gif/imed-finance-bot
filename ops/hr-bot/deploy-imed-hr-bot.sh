@@ -138,7 +138,10 @@ const BTN_BEKOR = "Bekor qilish";
 
 async function mainMenu(x: Xodim): Promise<Keyboard> {
   const h = await getHuquq(x.rol);
-  const kb = new Keyboard().text(BTN_KELDIM).text(BTN_TUSHLIKKA).text(BTN_KETDIM).row();
+  const kb = new Keyboard();
+  // Direktor davomati avto_davomat() cron orqali avtomatik yoziladi (09:05,
+  // har ish kuni) — shu sabab ularga qo'lda Keldim/Tushlikka/Ketdim tugmasi kerak emas.
+  if (x.rol !== "Director") kb.text(BTN_KELDIM).text(BTN_TUSHLIKKA).text(BTN_KETDIM).row();
   const admin2 = x.super_admin || h?.xodim_boshqaradi;
   if (admin2) kb.text(BTN_XODIMLAR);
   if (x.super_admin || h?.hisobot_koradi) kb.text(BTN_HISOBOT);
