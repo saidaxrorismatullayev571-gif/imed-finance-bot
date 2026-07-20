@@ -392,7 +392,8 @@ bot.hears(BTN_XODIMLAR, async (ctx) => {
     if (b !== oxirgiBolim) { txt += `<b>— ${escHtml(b)} —</b>\n`; oxirgiBolim = b; }
     txt += `${escHtml(r.ism)} — ${escHtml(r.rol)}\n`;
   });
-  const kb = new InlineKeyboard().text("Qo'shish", "xod:add").text("Arxivlash", "xod:arx").row().text("Bo'limlar", "bol:list");
+  const kb = new InlineKeyboard().text("Qo'shish", "xod:add").text("Arxivlash", "xod:arx").row()
+    .text("Bo'limlar", "bol:list").text("Rollar", "rol:list");
   await ctx.reply(txt || "Xodimlar yo'q.", { parse_mode: "HTML", reply_markup: kb });
 });
 
@@ -478,6 +479,82 @@ async function rolTanlashKb(prefix: string): Promise<InlineKeyboard> {
   (rollar ?? []).forEach((r) => kb.text(r.nom, `${prefix}:${r.nom}`).row());
   return kb;
 }
+
+// ── ROLLAR (faqat Super Admin qo'sha oladi -- maosh formulasiga ta'sir qiladi) ──
+bot.callbackQuery("rol:list", async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const { data: list } = await sb.from("rollar").select("nom").order("nom");
+  let txt = "<b>Rollar</b>\n\n";
+  (list ?? []).forEach((r, i) => { txt += `${i + 1}. ${escHtml(r.nom)}\n`; });
+  const kb = new InlineKeyboard().text("+ Yangi rol qo'shish", "rol:add");
+  await ctx.reply(txt || "Rollar yo'q.", { parse_mode: "HTML", reply_markup: kb });
+});
+
+bot.callbackQuery("rol:add", async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const x = await getXodim(ctx.from!.id);
+  if (!x || !x.super_admin) return ctx.reply("Bu amal faqat Super Adminga ruxsat etilgan.");
+  await setSess(ctx.from!.id, "rol_add_nom", {});
+  await ctx.reply("Yangi rol nomini yuboring:", { reply_markup: new Keyboard().text(BTN_BEKOR).resized() });
+});
+
+bot.callbackQuery(/^rolturi:(fix|kpi|yoq)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const sess = await getSess(ctx.from!.id);
+  await setSess(ctx.from!.id, "rol_add_fix", { ...sess.data, maosh_turi: ctx.match![1] });
+  await ctx.reply("Fix summasini kiriting (so'mda, kerak bo'lmasa 0 yozing):");
+});
+
+const HUQUQ_LABELS: Record<string, string> = {
+  davomat_tuzata_oladi: "Davomatni tuzatish",
+  hisobot_koradi: "Hisobotlarni ko'rish",
+  xodim_boshqaradi: "Xodimlarni boshqarish",
+  maosh_koradi: "Maoshni ko'rish",
+  sinov_boshqaradi: "Sinovni boshqarish",
+  signal_oladi: "Signal/anomaliya olish",
+  sozlama_boshqaradi: "Sozlamalarni boshqarish",
+};
+
+function huquqKb(huquqlar: Record<string, boolean>): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  Object.keys(HUQUQ_LABELS).forEach((key) => {
+    kb.text(`${huquqlar[key] ? "✅" : "⬜"} ${HUQUQ_LABELS[key]}`, `rolhq:t:${key}`).row();
+  });
+  kb.text("✅ Saqlash", "rolhq:save");
+  return kb;
+}
+
+interface RolAddData {
+  nom: string; maosh_turi: string; fix_summa: number; kpi_baza: number; ovqat_kun: number;
+  huquqlar: Record<string, boolean>;
+}
+
+bot.callbackQuery(/^rolhq:t:(.+)$/, async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const key = ctx.match![1];
+  const sess = await getSess(ctx.from!.id);
+  const d = sess.data as unknown as RolAddData;
+  d.huquqlar[key] = !d.huquqlar[key];
+  await setSess(ctx.from!.id, "rol_add_huquq", d as unknown as Record<string, unknown>);
+  await ctx.editMessageReplyMarkup({ reply_markup: huquqKb(d.huquqlar) });
+});
+
+bot.callbackQuery("rolhq:save", async (ctx) => {
+  await ctx.answerCallbackQuery();
+  const sess = await getSess(ctx.from!.id);
+  const d = sess.data as unknown as RolAddData;
+  const { error } = await sb.from("rollar").insert({
+    nom: d.nom, maosh_turi: d.maosh_turi, fix_summa: d.fix_summa, kpi_baza: d.kpi_baza, ovqat_kun: d.ovqat_kun,
+    ...d.huquqlar,
+  });
+  await clearSess(ctx.from!.id);
+  const x = await getXodim(ctx.from!.id);
+  if (error) {
+    await ctx.reply(`Xatolik: "${d.nom}" roli allaqachon mavjud bo'lishi mumkin.`, { reply_markup: x ? await mainMenu(x) : undefined });
+  } else {
+    await ctx.reply(`Yangi rol qo'shildi: ${d.nom}`, { reply_markup: x ? await mainMenu(x) : undefined });
+  }
+});
 
 // ── SINOV ──────────────────────────────────────────────────────────
 bot.hears(BTN_SINOV, async (ctx) => {
@@ -768,6 +845,35 @@ bot.on("message:text", async (ctx) => {
     } else {
       await ctx.reply(`Bo'lim qo'shildi: ${text}`, { reply_markup: x ? await mainMenu(x) : undefined });
     }
+    return;
+  }
+  if (sess.step === "rol_add_nom") {
+    await setSess(tgId, "rol_add_turi", { nom: text });
+    const kb = new InlineKeyboard()
+      .text("Fix (oylik)", "rolturi:fix").text("KPI", "rolturi:kpi").text("Yo'q", "rolturi:yoq");
+    await ctx.reply("Maosh turini tanlang:", { reply_markup: kb });
+    return;
+  }
+  if (sess.step === "rol_add_fix") {
+    const val = parseInt(text.replace(/\D/g, "")) || 0;
+    await setSess(tgId, "rol_add_kpi", { ...sess.data, fix_summa: val });
+    await ctx.reply("KPI baza summasini kiriting (so'mda, kerak bo'lmasa 0 yozing):");
+    return;
+  }
+  if (sess.step === "rol_add_kpi") {
+    const val = parseInt(text.replace(/\D/g, "")) || 0;
+    await setSess(tgId, "rol_add_ovqat", { ...sess.data, kpi_baza: val });
+    await ctx.reply("Kunlik ovqat puli miqdorini kiriting (so'mda, kerak bo'lmasa 0 yozing):");
+    return;
+  }
+  if (sess.step === "rol_add_ovqat") {
+    const val = parseInt(text.replace(/\D/g, "")) || 0;
+    const huquqlar = Object.fromEntries(Object.keys(HUQUQ_LABELS).map((k) => [k, false]));
+    await setSess(tgId, "rol_add_huquq", { ...sess.data, ovqat_kun: val, huquqlar });
+    await ctx.reply(
+      "Ushbu rol qaysi bo'limlarga kira olishini tanlang (bosib yoqing/o'chiring), so'ng Saqlash bosing:",
+      { reply_markup: huquqKb(huquqlar) },
+    );
     return;
   }
   if (sess.step === "sinov_add_summa") {
