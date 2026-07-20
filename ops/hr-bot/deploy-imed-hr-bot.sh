@@ -307,10 +307,13 @@ bot.on("message:location", async (ctx) => {
     return;
   }
   const loc = ctx.message!.location!;
+  const x = await getXodim(tgId);
   const radiusStr = await getConfig("ofis_radius_m");
   const radius = radiusStr ? parseInt(radiusStr) : 100;
   const dist = distanceM(loc.latitude, loc.longitude, OFIS_LAT, OFIS_LNG);
-  if (dist > radius) {
+  // Super Admin uchun radius tekshirilmaydi (test/har joydan boshqarish uchun) --
+  // boshqa barcha xodimlar uchun ofis radiusi majburiy.
+  if (!x?.super_admin && dist > radius) {
     await ctx.reply(`Siz ofisdan uzoqdasiz (${Math.round(dist)} m). Ofis hududida bo'lishingiz kerak.`);
     return;
   }
