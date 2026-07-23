@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="popup.css" />
+  <title>Tez Yordamchi</title>
+</head>
+<body>
+  <header class="app-header">
+    <div class="logo">TY</div>
+    <h1>Tez Yordamchi</h1>
+  </header>
+
+  <!-- Tab navigatsiyasi -->
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="page" role="tab">Sahifa</button>
+    <button class="tab" data-tab="notes" role="tab">Eslatma</button>
+    <button class="tab" data-tab="counter" role="tab">Hisoblagich</button>
+  </nav>
+
+  <!-- 1) Joriy sahifa ma'lumoti -->
+  <section class="panel active" id="panel-page">
+    <div class="field">
+      <span class="label">Sarlavha</span>
+      <p class="value" id="page-title">—</p>
+    </div>
+    <div class="field">
+      <span class="label">URL</span>
+      <p class="value url" id="page-url">—</p>
+    </div>
+    <button class="btn" id="copy-url">URL nusxalash</button>
+  </section>
+
+  <!-- 2) Tez eslatma -->
+  <section class="panel" id="panel-notes">
+    <textarea id="note-input" placeholder="Bu yerga eslatma yozing… (avtomatik saqlanadi)"></textarea>
+    <div class="row">
+      <span class="hint" id="note-status">Saqlangan</span>
+      <button class="btn danger" id="clear-note">Tozalash</button>
+    </div>
+  </section>
+
+  <!-- 3) Matn hisoblagich -->
+  <section class="panel" id="panel-counter">
+    <textarea id="counter-input" placeholder="Matnni bu yerga yozing yoki joylang…"></textarea>
+    <div class="stats">
+      <div class="stat"><span class="num" id="stat-chars">0</span><span class="cap">Belgi</span></div>
+      <div class="stat"><span class="num" id="stat-words">0</span><span class="cap">So'z</span></div>
+      <div class="stat"><span class="num" id="stat-lines">0</span><span class="cap">Qator</span></div>
+    </div>
+  </section>
+
+  <script src="popup.js"></script>
+</body>
+</html>
