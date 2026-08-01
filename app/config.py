@@ -15,6 +15,11 @@ class Config:
             int(x) for x in os.getenv("ADMIN_TELEGRAM_IDS", "").split(",") if x.strip()
         )
     )
+    # Web App dashboard uchun ochiq HTTPS manzil (masalan, sslip.io orqali).
+    # Bo'sh bo'lsa — /dashboard buyrug'i "hali sozlanmagan" deb javob beradi
+    # va ichki web-server umuman ishga tushmaydi.
+    webapp_url: str = os.environ.get("WEBAPP_URL", "")
+    webapp_port: int = int(os.getenv("WEBAPP_PORT", "8080"))
 
 
 config = Config()

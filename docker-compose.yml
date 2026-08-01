@@ -20,5 +20,29 @@ services:
       - db
     restart: unless-stopped
 
+  # Web App dashboard uchun HTTPS reverse-proxy — IXTIYORIY.
+  # WEBAPP_URL bo'sh bo'lsa Caddy noto'g'ri manzil bilan ishga tusholmaydi,
+  # shuning uchun bu servis "webapp" profilisiz ishga tushmaydi:
+  #   oddiy holat:        docker compose up -d
+  #   dashboard bilan:    docker compose --profile webapp up -d
+  # (WEBAPP_URL avval .env'da to'ldirilgan bo'lishi shart.)
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["webapp"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      WEBAPP_URL: ${WEBAPP_URL:-}
+    depends_on:
+      - bot
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

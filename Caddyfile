@@ -1,0 +1,8 @@
+# Web App dashboard uchun avtomatik HTTPS (Let's Encrypt).
+# WEBAPP_URL .env faylida to'liq manzil sifatida beriladi, masalan:
+#   WEBAPP_URL=https://164-90-123-45.sslip.io
+# (domeningiz yo'q bo'lsa — sslip.io serveringiz IP manzilini shu formatda
+# bepul hostname'ga aylantiradi, DNS sozlash shart emas.)
+{$WEBAPP_URL} {
+    reverse_proxy bot:8080
+}
